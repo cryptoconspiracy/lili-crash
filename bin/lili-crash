@@ -5,6 +5,7 @@
   lili-crash mark <binary> <state> [summary]
   lili-crash notify <pid>               desktop notification for one crash
   lili-crash watch                      notify every new crash (run by the lili-crash service)
+  lili-crash open                       Lili's window: usage and crash history
   lili-crash diagnose <pid>...          open Claude in a terminal to find out why
   lili-crash config [set <key> <value>] settings shared with the tray widget
   lili-crash install <agent>            run the agent's official installer in a terminal
@@ -250,6 +251,13 @@ def watch():
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+def open_window():
+    if shutil.which("plasmawindowed"):
+        os.execvp("plasmawindowed", ["plasmawindowed", "lili"])
+    # Without Plasma there's no panel to show, so the history goes to a terminal.
+    open_terminal("Lili Crash", f"{shlex.quote(sys.argv[0])} list | python3 -m json.tool\n")
+
+
 def user_language():
     for var in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
         value = os.environ.get(var, "").split(":")[0].split(".")[0]
@@ -376,6 +384,9 @@ def distro():
     candidates = [info.get("ID", "")] + info.get("ID_LIKE", "").split()
     for candidate in candidates:
         key = "opensuse" if candidate.startswith("opensuse") else candidate
+        # Bazzite, Silverblue and friends update as one image, not package by package.
+        if key == "fedora" and Path("/run/ostree-booted").exists():
+            key = "fedora-atomic"
         if key and (DISTRO_NOTES / f"{key}.md").is_file():
             return key, info.get("PRETTY_NAME") or info.get("NAME") or key
     return "generic", info.get("PRETTY_NAME") or "Linux"
@@ -504,6 +515,8 @@ def main(args):
         mark(rest[0], rest[1], " ".join(rest[2:]))
     elif command == "notify" and len(rest) == 1 and rest[0].isdigit():
         notify(int(rest[0]))
+    elif command == "open" and not rest:
+        open_window()
     elif command == "watch" and not rest:
         watch()
     elif command == "skill" and len(rest) == 1:

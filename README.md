@@ -109,9 +109,14 @@ cd lili-crash
 ./install.sh
 ```
 
-That's it: no password, everything stays in your own folder. Then right-click the
-row of small icons next to your clock, choose *Configure System Tray > Entries*, and
-set **Lili Crash** to *Always shown*.
+The installer recognizes your Linux and checks what's missing. If something is (for
+example `systemd-coredump` on Ubuntu and Debian), it tells you exactly which packages
+and asks before installing them; that's the only moment it may ask for your password.
+Everything else stays in your own folder.
+
+Then type **Lili** in your application menu to open her, or right-click the row of
+small icons next to your clock, choose *Configure System Tray > Entries*, and set
+**Lili Crash** to *Always shown*.
 
 You'll also need an account with one of the AI assistants above (for example a
 Claude or ChatGPT subscription).
@@ -129,10 +134,10 @@ its investigation in the right place.
 | **Garuda Linux** | ✅ Tested | Where Lili was built. Knows about its snapshots, so the AI can tell you which update came right before a crash |
 | **Arch Linux**, **Manjaro**, **EndeavourOS**, **CachyOS** | ✅ | Uses the Arch notes |
 | **Fedora** (Workstation, KDE), **Nobara**, **Rocky Linux**, **AlmaLinux** | ✅ | Uses the Fedora notes |
-| **Bazzite**, **Fedora Silverblue / Kinoite** | ✅ | Uses the Fedora notes. These systems update as a whole image, so "what changed recently" is `rpm-ostree status` rather than the package history the notes describe |
+| **Bazzite**, **Fedora Silverblue / Kinoite**, **Aurora**, **Bluefin** | ✅ | Has its own notes: these systems update as a whole image, so the AI compares images with `rpm-ostree` instead of reading a package history |
 | **openSUSE** Tumbleweed, Leap, Slowroll | ✅ | Uses the openSUSE notes, snapshots included |
-| **Ubuntu**, **Kubuntu**, **Linux Mint**, **Pop!_OS**, **KDE neon**, **Zorin OS**, **elementary OS** | ✅ with one step | Uses the Ubuntu notes. Run `sudo apt install systemd-coredump` once, so crashes are recorded where Lili can see them (Ubuntu hands them to its own tool, Apport, by default) |
-| **Debian** | ✅ with one step | Uses the Debian notes. Run `sudo apt install systemd-coredump` once |
+| **Ubuntu**, **Kubuntu**, **Linux Mint**, **Pop!_OS**, **KDE neon**, **Zorin OS**, **elementary OS** | ✅ | Uses the Ubuntu notes. Ubuntu hands crashes to its own tool, Apport; the installer adds `systemd-coredump` so Lili sees them too (the two live together since Ubuntu 24.04) |
+| **Debian** | ✅ | Uses the Debian notes. The installer adds `systemd-coredump`, which Debian leaves out |
 | **NixOS**, **Solus** and other systemd distributions | ✅ | Uses the general notes; the AI works out the rest |
 | **Void**, **Alpine**, **Artix**, **Devuan**, **Gentoo with OpenRC**, **antiX**, **MX Linux** (default setup) | ❌ | No systemd, so there's no crash record for Lili to read |
 
@@ -188,6 +193,9 @@ Everything Lili does is also a command:
 | `lili-crash config [set <key> <value>]` | Settings shared with the tray icon |
 
 `coredumpctl list` shows the PIDs.
+
+To check the installer on other distributions, `tests/install-in-containers.sh` runs it
+in clean Ubuntu, Debian, Fedora, openSUSE and Arch containers (needs podman).
 
 ## What's next
 

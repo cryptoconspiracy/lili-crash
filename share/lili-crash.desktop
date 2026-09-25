@@ -1,8 +1,13 @@
 [Desktop Entry]
 Type=Application
 Name=Lili Crash
-Comment=Crash notifications with a one-click diagnosis
-Comment[pt_BR]=Notificações de falha com diagnóstico em um clique
+GenericName=Crash Diagnosis
+GenericName[pt_BR]=Diagnóstico de falhas
+Comment=Why did that program close? Your AI usage and crash history
+Comment[pt_BR]=Por que aquele programa fechou? Seu uso de IA e o histórico de falhas
 Icon=lili-crash
-Exec=lili-crash list
-NoDisplay=true
+Exec=lili-crash open
+Terminal=false
+Categories=System;Monitor;
+Keywords=lili;crash;coredump;segfault;diagnosis;claude;codex;ai;
+Keywords[pt_BR]=lili;travamento;falha;crash;diagnóstico;claude;codex;ia;
