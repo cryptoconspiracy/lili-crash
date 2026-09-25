@@ -38,8 +38,9 @@ out of memory, looks at recent updates, and then writes you a report: **what
 happened, what caused it, whether any of your work was lost, and whether it will
 happen again.**
 
-It answers in your language. Below, it's answering in Brazilian Portuguese, and it
-found out that this "crash" was actually caused on purpose, by a test.
+It answers in your language. In the example below it found out that this "crash" was
+actually caused on purpose, by a test, and even suggested an improvement to Lili
+herself, offering to open an issue for it.
 
 <p align="center"><img src="assets/screenshots/diagnosis.png" alt="The AI investigating the crash and writing a report"></p>
 
