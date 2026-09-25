@@ -118,15 +118,35 @@ Claude or ChatGPT subscription).
 
 ## Will it work on my computer?
 
+### Your Linux
+
+Lili works on any Linux that uses **systemd**, which is almost all of the popular ones.
+For each family below she knows where that Linux keeps its records, so the AI starts
+its investigation in the right place.
+
+| Linux | Works | Good to know |
+|---|---|---|
+| **Garuda Linux** | ✅ Tested | Where Lili was built. Knows about its snapshots, so the AI can tell you which update came right before a crash |
+| **Arch Linux**, **Manjaro**, **EndeavourOS**, **CachyOS** | ✅ | Uses the Arch notes |
+| **Fedora** (Workstation, KDE), **Nobara**, **Rocky Linux**, **AlmaLinux** | ✅ | Uses the Fedora notes |
+| **Bazzite**, **Fedora Silverblue / Kinoite** | ✅ | Uses the Fedora notes. These systems update as a whole image, so "what changed recently" is `rpm-ostree status` rather than the package history the notes describe |
+| **openSUSE** Tumbleweed, Leap, Slowroll | ✅ | Uses the openSUSE notes, snapshots included |
+| **Ubuntu**, **Kubuntu**, **Linux Mint**, **Pop!_OS**, **KDE neon**, **Zorin OS**, **elementary OS** | ✅ with one step | Uses the Ubuntu notes. Run `sudo apt install systemd-coredump` once, so crashes are recorded where Lili can see them (Ubuntu hands them to its own tool, Apport, by default) |
+| **Debian** | ✅ with one step | Uses the Debian notes. Run `sudo apt install systemd-coredump` once |
+| **NixOS**, **Solus** and other systemd distributions | ✅ | Uses the general notes; the AI works out the rest |
+| **Void**, **Alpine**, **Artix**, **Devuan**, **Gentoo with OpenRC**, **antiX**, **MX Linux** (default setup) | ❌ | No systemd, so there's no crash record for Lili to read |
+
+Only Garuda has been tried so far. If you run Lili on another one, an issue telling us
+how it went is very welcome, and so are notes for a Linux that isn't listed
+(`skill/lili-diagnose-crash/distros/`).
+
+### Your desktop
+
 | | |
 |---|---|
 | **KDE Plasma 6** | Everything: notifications, Lili next to the clock, settings |
 | **GNOME, XFCE, Cinnamon and others** | Crash notifications and the diagnosis. Lili's icon next to the clock is KDE only for now |
 | **Wayland or X11** | Either one |
-| **Tested on** | Garuda Linux, KDE Plasma 6, Wayland. Other setups should work but haven't been tried yet |
-
-Lili reads crashes from `systemd-coredump`, which most distributions have out of the
-box. On Debian, install the `systemd-coredump` package; on Ubuntu, it replaces Apport.
 
 ## Privacy, honestly
 
