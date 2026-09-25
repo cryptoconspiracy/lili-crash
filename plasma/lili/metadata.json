@@ -7,7 +7,7 @@
         "Category": "System Information",
         "Authors": [{ "Name": "Dan B" }],
         "License": "MIT",
-        "Version": "0.2",
+        "Version": "0.3",
         "Website": "https://github.com/cryptoconspiracy/lili-crash"
     },
     "KPackageStructure": "Plasma/Applet",

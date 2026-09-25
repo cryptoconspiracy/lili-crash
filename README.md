@@ -127,6 +127,18 @@ type **Lili** in your application menu to open her panel as a window.
 You'll also need an account with one of the AI assistants above (for example a
 Claude or ChatGPT subscription).
 
+### Updating
+
+In the folder you cloned:
+
+```bash
+git pull
+./install.sh
+```
+
+The notifications update right away. Lili's panel next to the clock is loaded when
+you log in, so if it doesn't show what's new, log out and back in.
+
 ## Will it work on my computer?
 
 ### Your Linux
@@ -204,6 +216,32 @@ without the "System is rebooting / powering down" that a normal shutdown logs.
 
 To check the installer on other distributions, `tests/install-in-containers.sh` runs it
 in clean Ubuntu, Debian, Fedora, openSUSE and Arch containers (needs podman).
+
+## What's new
+
+### 0.3: when the whole computer freezes
+
+Sometimes it isn't one program: the screen goes black, nothing responds, and the only
+way out is holding the power button. There's no crash record for that, so Lili used
+to miss it. Now she doesn't.
+
+- The next time you log in, she tells you the computer froze and what was going on
+  right before it: the graphics driver (NVIDIA, AMD or Intel) stopped responding, the
+  kernel got stuck, memory ran out, or nothing was logged at all.
+- *Find out why* hands the AI the boot that froze, with the first warning signs
+  already picked out, and the AI knows how to read it: the first thing that went
+  wrong rather than the loudest, which program was caught in the driver, and what
+  NVIDIA's error codes mean.
+- Freezes show up in her list as **The computer froze**, with the same New,
+  Diagnosed, Resolved and Ignored states as programs.
+
+Lili counts a boot as frozen when it ended without the "rebooting / powering down"
+message a normal shutdown leaves behind.
+
+### 0.2: first release
+
+Crash notifications, a one-click diagnosis with eight AI assistants, notes for each
+Linux family, and Lili next to your clock with your AI usage.
 
 ## What's next
 
