@@ -19,6 +19,12 @@ single click she asks an AI assistant (like Claude or ChatGPT's Codex) to invest
 for you and explain what happened, whether you lost anything, and whether it will
 happen again.
 
+She also notices when the **whole computer froze** (black screen, nothing responds,
+you had to hold the power button). Nobody can see a warning while that's happening,
+so the next time you log in, Lili tells you what was going on right before it: the
+graphics driver stopped responding, the kernel got stuck, memory ran out, or nothing
+was logged at all. One click and the AI reads what happened on that boot.
+
 You don't need to know anything about Linux to use her.
 
 ## How it works, step by step
@@ -184,15 +190,17 @@ Everything Lili does is also a command:
 | Command | What it does |
 |---|---|
 | `lili-crash list` | Programs that crashed, newest first, as JSON |
-| `lili-crash diagnose <pid>...` | Open the AI on one or more crashes |
+| `lili-crash diagnose <pid\|boot>...` | Open the AI on one or more crashes or freezes |
 | `lili-crash mark <binary> <state> [summary]` | Set a program to `new`, `diagnosed`, `resolved` or `ignored` |
-| `lili-crash notify <pid>` | Show the notification for one crash |
-| `lili-crash watch` | Notify every new crash (the `lili-crash` user service runs this) |
+| `lili-crash notify <pid\|boot>` | Show the notification for one crash or freeze |
+| `lili-crash watch` | Notify every new crash, and a freeze from the boot before (the `lili-crash` user service runs this) |
 | `lili-crash install <agent>` | Run an AI's official installer in a terminal |
 | `lili-crash skill <path\|view\|edit\|reset>` | The notes for your distribution |
 | `lili-crash config [set <key> <value>]` | Settings shared with the tray icon |
 
-`coredumpctl list` shows the PIDs.
+`coredumpctl list` shows the PIDs. A freeze is known by its boot id (`journalctl --list-boots`),
+and its state lives under the name `freeze`. Lili counts a boot as frozen when it ended
+without the "System is rebooting / powering down" that a normal shutdown logs.
 
 To check the installer on other distributions, `tests/install-in-containers.sh` runs it
 in clean Ubuntu, Debian, Fedora, openSUSE and Arch containers (needs podman).

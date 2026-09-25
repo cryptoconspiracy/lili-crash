@@ -2,10 +2,12 @@
 name: lili-diagnose-crash
 description: >
   Find out why a program crashed on this Linux machine, from a systemd-coredump core
-  dump. Use when a process segfaulted, aborted or dumped core, when someone asks why
-  an app closed on its own, or when a Lili Crash notification is clicked. Triggers:
-  crash, crashed, segfault, SIGSEGV, SIGABRT, core dump, coredumpctl, "why did X
-  close", "X keeps crashing".
+  dump, or why the whole computer froze, from the journal of the boot that froze. Use
+  when a process segfaulted, aborted or dumped core, when someone asks why an app
+  closed on its own, when the screen went black and the machine had to be forced off,
+  or when a Lili Crash notification is clicked. Triggers: crash, crashed, segfault,
+  SIGSEGV, SIGABRT, core dump, coredumpctl, "why did X close", "X keeps crashing",
+  freeze, froze, black screen, soft lockup, "had to hold the power button".
 ---
 
 # Diagnosing a crash
@@ -85,6 +87,36 @@ Many packages ship no debug symbols. When frames stay unresolved, say so, and ne
 invent function names to fill the gap. An unsymbolized stack still has shape: which
 library each frame belongs to, and whether the crash came from a signal handler, a
 main loop or a worker thread.
+
+## When the whole computer froze
+
+There's no core dump: the kernel itself got stuck, and the user had to force the
+machine off. The evidence is the journal of the boot that froze, and the prompt names
+it. `journalctl --list-boots` shows its index; `-b <boot id>` works too.
+
+- **Find the first sign, not the loudest.** A freeze leaves minutes of cascading
+  errors (soft lockups on every CPU, GPU asserts, stuck processes). Read backwards
+  from the end with `journalctl -b <boot> -o short-precise` until you reach the first
+  message that is wrong, then read the minute before it. That minute holds the
+  trigger: the screen dimming or turning off, the lid, a monitor plugged in, a
+  suspend, a game starting.
+- **Name the process caught in it.** Soft lockups and NVIDIA Xid lines say which
+  process was inside the driver (`[backlighthelper:1234]`, `pid=..., name=...`).
+  That process is usually the trigger, not the culprit.
+- **GPU hangs.** NVIDIA logs `NVRM: Xid <n>`; look the number up in NVIDIA's Xid
+  table instead of guessing. Also check which GPU drives each screen
+  (`/sys/class/drm/card*-*/status`) and whose backlight is in `/sys/class/backlight`:
+  on a hybrid laptop in discrete mode, brightness and screen power go through the
+  NVIDIA driver. The driver's options are in `/proc/driver/nvidia/params` and
+  `/etc/modprobe.d/`.
+- **Nothing logged at all** can mean the journal never got the last seconds to disk,
+  a hardware hang, or a dead battery. Say that the evidence is missing; don't fill
+  the gap.
+- **Pattern.** Earlier boots that ended without `System is rebooting` or
+  `System is powering down` froze too. Compare how each one started.
+
+The freeze's state lives under the key `freeze`, so record it with
+`lili-crash mark 'freeze' diagnosed '<the cause in one sentence>'`.
 
 ## Report
 

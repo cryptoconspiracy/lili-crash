@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: lili-crash\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-25 12:10-0300\n"
+"POT-Creation-Date: 2026-09-25 13:55-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,117 +17,156 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: bin/lili-crash:49
+#: bin/lili-crash:51
 msgid "Touched memory it didn't own"
 msgstr ""
 
-#: bin/lili-crash:50
+#: bin/lili-crash:52
 msgid "Gave up on an internal error"
 msgstr ""
 
-#: bin/lili-crash:51
+#: bin/lili-crash:53
 msgid "Read memory that was no longer there"
 msgstr ""
 
-#: bin/lili-crash:52
+#: bin/lili-crash:54
 msgid "Hit a math error, like dividing by zero"
 msgstr ""
 
-#: bin/lili-crash:53
+#: bin/lili-crash:55
 msgid "Tried to run an invalid instruction"
 msgstr ""
 
-#: bin/lili-crash:54
+#: bin/lili-crash:56
 msgid "Stopped at a debugger trap"
 msgstr ""
 
-#: bin/lili-crash:55
+#: bin/lili-crash:57
 msgid "Made a forbidden system call"
 msgstr ""
 
-#: bin/lili-crash:56
+#: bin/lili-crash:58
 #, python-brace-format
 msgid "Got signal {signal}"
 msgstr ""
 
-#: bin/lili-crash:63
+#: bin/lili-crash:65
 #, python-brace-format
 msgid "today at {time}"
 msgstr ""
 
-#: bin/lili-crash:65
+#: bin/lili-crash:67
 #, python-brace-format
 msgid "yesterday at {time}"
 msgstr ""
 
-#: bin/lili-crash:67
+#: bin/lili-crash:69
 #, python-brace-format
 msgid "on {date} at {time}"
 msgstr ""
 
-#: bin/lili-crash:67
+#: bin/lili-crash:69
 msgid "%m/%d"
 msgstr ""
 
-#: bin/lili-crash:165
+#: bin/lili-crash:180
+#, python-brace-format
+msgid "The graphics driver ({driver}) stopped responding"
+msgstr ""
+
+#: bin/lili-crash:181
+msgid "The kernel crashed"
+msgstr ""
+
+#: bin/lili-crash:182
+msgid "The kernel got stuck"
+msgstr ""
+
+#: bin/lili-crash:183
+msgid "It ran out of memory"
+msgstr ""
+
+#: bin/lili-crash:184
+msgid "Nothing was logged before it stopped"
+msgstr ""
+
+#: bin/lili-crash:263
 #, python-brace-format
 msgid "Unknown state: {state}. Use one of: {states}"
 msgstr ""
 
-#: bin/lili-crash:206
+#: bin/lili-crash:303 bin/lili-crash:334 bin/lili-crash:428
+msgid "The computer froze"
+msgstr ""
+
+#: bin/lili-crash:309
+msgid "no log"
+msgstr ""
+
+#: bin/lili-crash:321
 #, python-brace-format
 msgid "No core dump with PID {pid}"
 msgstr ""
 
-#: bin/lili-crash:214
-msgid "Find out why"
+#: bin/lili-crash:328
+#, python-brace-format
+msgid "No freeze recorded for boot {boot}"
 msgstr ""
 
-#: bin/lili-crash:219
+#: bin/lili-crash:335
+#, python-brace-format
+msgid "{reason}, {when}. It had to be forced off."
+msgstr ""
+
+#: bin/lili-crash:339
 #, python-brace-format
 msgid "{name} crashed"
 msgstr ""
 
-#: bin/lili-crash:220
+#: bin/lili-crash:340
 #, python-brace-format
 msgid "{reason} ({signal}), {when}."
 msgstr ""
 
-#: bin/lili-crash:247
+#: bin/lili-crash:345
+msgid "Find out why"
+msgstr ""
+
+#: bin/lili-crash:440 bin/lili-crash:443
 #, python-brace-format
 msgid "Diagnosis: {name}"
 msgstr ""
 
-#: bin/lili-crash:251
+#: bin/lili-crash:447
 #, python-brace-format
 msgid "Diagnosis: {count} programs"
 msgstr ""
 
-#: bin/lili-crash:262
+#: bin/lili-crash:458
 #, python-brace-format
 msgid "{agent} isn't installed: {url}"
 msgstr ""
 
-#: bin/lili-crash:280
+#: bin/lili-crash:476
 #, python-brace-format
 msgid "Unknown agent: {agent}"
 msgstr ""
 
-#: bin/lili-crash:281
+#: bin/lili-crash:477
 msgid "Done. You can close this window."
 msgstr ""
 
-#: bin/lili-crash:282
+#: bin/lili-crash:478
 #, python-brace-format
 msgid "Installing {agent}"
 msgstr ""
 
-#: bin/lili-crash:412
+#: bin/lili-crash:617
 #, python-brace-format
 msgid "No supported terminal found: {terminals}"
 msgstr ""
 
-#: bin/lili-crash:430
+#: bin/lili-crash:635
 #, python-brace-format
 msgid "Unknown setting: {key}. Use one of: {keys}"
 msgstr ""

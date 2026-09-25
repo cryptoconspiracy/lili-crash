@@ -83,7 +83,7 @@ PlasmoidItem {
     }
 
     function diagnoseAll() {
-        diagnose(programs.filter(p => p.state === "new").map(p => p.last.pid))
+        diagnose(programs.filter(p => p.state === "new").map(p => p.last.id))
     }
 
     function saveSettings() {
@@ -388,7 +388,7 @@ PlasmoidItem {
                         defaultActionButtonAction: QQC2.Action {
                             icon.name: "tools-wizard"
                             text: modelData.state === "new" ? i18n("Diagnose") : i18n("Diagnose again")
-                            onTriggered: root.diagnose([modelData.last.pid])
+                            onTriggered: root.diagnose([modelData.last.id])
                         }
 
                         customExpandedViewContent: ColumnLayout {
@@ -408,6 +408,7 @@ PlasmoidItem {
                             }
                             PlasmaComponents3.Label {
                                 Layout.fillWidth: true
+                                visible: modelData.exe !== "freeze"
                                 text: modelData.exe
                                 opacity: 0.6
                                 font: Kirigami.Theme.smallFont

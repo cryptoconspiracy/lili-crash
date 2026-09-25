@@ -1,12 +1,12 @@
 #!/usr/bin/python3
-"""Crash notifications, history and diagnosis on top of systemd-coredump.
+"""Crash notifications, history and diagnosis on top of systemd-coredump and the journal.
 
   lili-crash list                       programs that crashed, newest first, as JSON
   lili-crash mark <binary> <state> [summary]
-  lili-crash notify <pid>               desktop notification for one crash
-  lili-crash watch                      notify every new crash (run by the lili-crash service)
+  lili-crash notify <pid|boot>          desktop notification for one crash or freeze
+  lili-crash watch                      notify every new crash, and a freeze from the last boot (run by the lili-crash service)
   lili-crash open                       Lili's window: usage and crash history
-  lili-crash diagnose <pid>...          open Claude in a terminal to find out why
+  lili-crash diagnose <pid|boot>...     open Claude in a terminal to find out why
   lili-crash config [set <key> <value>] settings shared with the tray widget
   lili-crash install <agent>            run the agent's official installer in a terminal
   lili-crash skill <path|view|edit|reset>  this distro's notes for the diagnosis skill
@@ -155,6 +155,102 @@ def crashes():
             continue
 
 
+# logind says this whenever the system is asked to reboot or power off. A past boot
+# without it ended some other way: the power button held down, a hard reset, a dead
+# battery.
+SHUTDOWN_MESSAGE_ID = "98268866d1d54a499c4e98921d93bc40"
+FREEZE_KEY = "freeze"
+BOOTS_FILE = STATE_DIR / "boots.json"
+# Only the last stretch of a boot matters: drivers log harmless errors at startup,
+# and a freeze always starts close to the end.
+FREEZE_WINDOW = 30 * 60
+FREEZE_SIGNS = [
+    ("gpu", "nvidia", re.compile(r"NVRM: (Xid|GPU\d.*(fail|timeout|Timeout|stuck))|[Pp]age ?flip.*timed out|nvidia-modeset: ERROR")),
+    ("gpu", "amdgpu", re.compile(r"amdgpu.*(ring \S+ timeout|GPU reset|GPU recovery|page fault)")),
+    ("gpu", "i915", re.compile(r"i915.*(GPU HANG|[Rr]esetting)")),
+    ("gpu", "xe", re.compile(r"\bxe\b.*(GPU hang|[Tt]imedout job|[Rr]eset)")),
+    ("panic", "panic", re.compile(r"Kernel panic|Oops:|BUG: unable to handle")),
+    ("lockup", "soft lockup", re.compile(r"soft lockup|hard LOCKUP|rcu.*detected stalls|blocked for more than \d+ seconds")),
+    ("oom", "OOM", re.compile(r"Out of memory: Killed process")),
+]
+
+
+def freeze_reason(kind, tag):
+    return {
+        "gpu": _("The graphics driver ({driver}) stopped responding").format(driver=tag),
+        "panic": _("The kernel crashed"),
+        "lockup": _("The kernel got stuck"),
+        "oom": _("It ran out of memory"),
+    }.get(kind) or _("Nothing was logged before it stopped")
+
+
+def journal(*args):
+    return subprocess.run(["journalctl", "--no-pager", *args], capture_output=True, text=True).stdout
+
+
+def inspect_boot(boot, last):
+    """Returns how a past boot froze, or None if it shut down properly."""
+    if journal("-b", boot, "-o", "cat", f"MESSAGE_ID={SHUTDOWN_MESSAGE_ID}").strip():
+        return None
+    freeze = {"boot": boot, "time": last, "kind": "unknown", "tag": "", "lines": []}
+    shapes = set()
+    out = journal("-b", boot, f"--since=@{last - FREEZE_WINDOW}", "-o", "json",
+                  "--output-fields=MESSAGE,SYSLOG_IDENTIFIER")
+    for line in out.splitlines():
+        try:
+            e = json.loads(line)
+            message = e["MESSAGE"] if isinstance(e["MESSAGE"], str) else ""
+        except (ValueError, KeyError):
+            continue
+        for kind, tag, pattern in FREEZE_SIGNS:
+            if pattern.search(message):
+                # The first sign is the cause; what follows is usually the fallout.
+                if freeze["kind"] == "unknown":
+                    freeze.update(kind=kind, tag=tag, time=int(e["__REALTIME_TIMESTAMP"]) // 1_000_000)
+                seen = f"{e.get('SYSLOG_IDENTIFIER', '')}: {message[:300]}"
+                # Hangs repeat the same complaint every few seconds; numbers aside, once is enough.
+                shape = re.sub(r"\d+", "#", seen)
+                if len(freeze["lines"]) < 6 and shape not in shapes:
+                    shapes.add(shape)
+                    freeze["lines"].append(seen)
+                break
+    return freeze
+
+
+def load_boots():
+    try:
+        return json.loads(BOOTS_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def save_boots(boots):
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = BOOTS_FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(boots, ensure_ascii=False, indent=1))
+    tmp.replace(BOOTS_FILE)
+
+
+def freezes():
+    """Past boots that ended without a shutdown. A finished boot's journal doesn't
+    change, so each one is read once and remembered."""
+    try:
+        listed = json.loads(journal("--list-boots", "-o", "json"))
+    except ValueError:
+        return []
+    known = load_boots()
+    changed = False
+    for b in listed:
+        if b["index"] == 0 or b["boot_id"] in known:
+            continue
+        known[b["boot_id"]] = {"freeze": inspect_boot(b["boot_id"], b["last_entry"] // 1_000_000)}
+        changed = True
+    if changed:
+        save_boots(known)
+    present = {b["boot_id"] for b in listed}
+    return [v["freeze"] for k, v in known.items() if k in present and v.get("freeze")]
+
+
 def load_state():
     try:
         return json.loads(STATE_FILE.read_text())
@@ -194,8 +290,25 @@ def programs():
             "summary": state.get("summary", ""),
             "count": len(items),
             "fresh": len(fresh),
-            "last": {**last, "reason": reason(last["signal"]), "when": when(last["time"])},
+            "last": {**last, "id": str(last["pid"]), "reason": reason(last["signal"]), "when": when(last["time"])},
             "crashes": items,
+        })
+    frozen = sorted(freezes(), key=lambda f: f["time"])
+    if frozen:
+        state = saved.get(FREEZE_KEY, {})
+        fresh = [f for f in frozen if f["time"] > state.get("until", 0)]
+        last = frozen[-1]
+        result.append({
+            "exe": FREEZE_KEY,
+            "name": _("The computer froze"),
+            "icon": "computer",
+            "state": "new" if fresh else state.get("state", "new"),
+            "summary": state.get("summary", ""),
+            "count": len(frozen),
+            "fresh": len(fresh),
+            "last": {"id": last["boot"], "signal": last["tag"] or _("no log"), "time": last["time"],
+                     "reason": freeze_reason(last["kind"], last["tag"]), "when": when(last["time"])},
+            "crashes": frozen,
         })
     return sorted(result, key=lambda p: p["last"]["time"], reverse=True)
 
@@ -203,31 +316,67 @@ def programs():
 def find(pid):
     for p in programs():
         for c in p["crashes"]:
-            if c["pid"] == pid:
+            if c.get("pid") == pid:
                 return p, c
     sys.exit(_("No core dump with PID {pid}").format(pid=pid))
 
 
-def notify(pid):
-    program, crash = find(pid)
+def find_freeze(boot):
+    for f in freezes():
+        if f["boot"] == boot:
+            return f
+    sys.exit(_("No freeze recorded for boot {boot}").format(boot=boot))
+
+
+def notify(target):
+    if is_boot(target):
+        freeze = find_freeze(target)
+        icon, title = "computer", _("The computer froze")
+        text = _("{reason}, {when}. It had to be forced off.").format(
+            reason=freeze_reason(freeze["kind"], freeze["tag"]), when=when(freeze["time"]))
+    else:
+        program, crash = find(int(target))
+        icon, title = program["icon"], _("{name} crashed").format(name=program["name"])
+        text = _("{reason} ({signal}), {when}.").format(reason=reason(crash["signal"]), signal=crash["signal"],
+                                                        when=when(crash["time"]))
     # The configured locale may not be generated, and notify-send then refuses
     # anything that isn't ASCII.
     env = {**os.environ, "LC_ALL": "C.UTF-8"}
     button = _("Find out why")
     # "default" is a click on the notification body; Plasma doesn't draw it as a button.
     action = subprocess.run(
-        ["notify-send", "--app-name=Lili Crash", f"--icon={program['icon']}", "--hint=string:desktop-entry:lili-crash", "--hint=boolean:transient:true", "--urgency=normal", "--expire-time=0",
-         f"--action=default={button}", f"--action=diagnose={button}",
-         _("{name} crashed").format(name=program["name"]),
-         _("{reason} ({signal}), {when}.").format(reason=reason(crash["signal"]), signal=crash["signal"],
-                                                   when=when(crash["time"]))],
+        ["notify-send", "--app-name=Lili Crash", f"--icon={icon}", "--hint=string:desktop-entry:lili-crash", "--hint=boolean:transient:true", "--urgency=normal", "--expire-time=0",
+         f"--action=default={button}", f"--action=diagnose={button}", title, text],
         env=env, capture_output=True, text=True).stdout.strip()
     if action in ("default", "diagnose"):
-        diagnose([pid])
+        diagnose([target])
+
+
+def is_boot(target):
+    return bool(re.fullmatch(r"[0-9a-f]{32}", target))
+
+
+def notify_last_freeze():
+    """A freeze can't be announced while it happens (the screen is usually gone), so
+    the next login tells about the boot before it, once."""
+    found = freezes()
+    boots = load_boots()
+    frozen = [f for f in found if not boots[f["boot"]].get("notified")]
+    if not frozen or load_state().get(FREEZE_KEY, {}).get("state") == "ignored":
+        return
+    for f in frozen:
+        boots[f["boot"]]["notified"] = True
+    save_boots(boots)
+    last = max(frozen, key=lambda f: f["time"])
+    # Only a freeze from the last day is news; older ones wait in the list.
+    if time.time() - last["time"] < 86400:
+        subprocess.Popen([sys.argv[0], "notify", last["boot"]], start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def watch():
     """Follows the journal and notifies each new crash of this user's programs."""
+    notify_last_freeze()
     last_seen = {}
     follow = subprocess.Popen(["journalctl", "-f", "-n", "0", "-o", "json", "--output-fields=COREDUMP_PID,COREDUMP_EXE,"
                                "COREDUMP_COMM,COREDUMP_UID", f"MESSAGE_ID={COREDUMP_MESSAGE_ID}"],
@@ -266,24 +415,37 @@ def user_language():
     return "en"
 
 
-def diagnose(pids):
-    facts, names = [], []
-    for pid in pids:
-        program, crash = find(pid)
+def diagnose(targets):
+    facts, names, frozen = [], [], []
+    for target in targets:
+        if is_boot(target):
+            f = find_freeze(target)
+            stamp = datetime.fromtimestamp(f["time"]).strftime("%Y-%m-%d %H:%M:%S")
+            seen = "\n".join(f"    {line}" for line in f["lines"]) or "    (nothing matched)"
+            facts.append(f"- The whole computer froze and was forced off: boot {target}, around {stamp}, "
+                         f"no shutdown recorded. First warning signs Lili matched in its last "
+                         f"{FREEZE_WINDOW // 60} minutes (key '{FREEZE_KEY}'):\n{seen}")
+            names.append(_("The computer froze"))
+            frozen.append(target)
+            continue
+        program, crash = find(int(target))
         stamp = datetime.fromtimestamp(crash["time"]).strftime("%Y-%m-%d %H:%M:%S")
-        facts.append(f"- {program['name']}: PID {pid}, binary {program['exe']}, signal {crash['signal']}, "
+        facts.append(f"- {program['name']}: PID {target}, binary {program['exe']}, signal {crash['signal']}, "
                      f"{stamp}, {program['count']} crash(es) of this program in the journal")
         names.append(program["name"])
 
     where = f"{distro()[1]}, {os.environ.get('XDG_CURRENT_DESKTOP') or 'Linux desktop'}"
-    if len(pids) == 1:
+    if len(targets) == 1 and frozen:
+        ask = f"This computer ({where}) froze and had to be forced off, and I'd like to know why."
+        title = _("Diagnosis: {name}").format(name=names[0])
+    elif len(targets) == 1:
         ask = f"A program crashed on this machine ({where}) and I'd like to know why."
         title = _("Diagnosis: {name}").format(name=names[0])
     else:
-        ask = (f"Several programs crashed on this machine ({where}). Go through them one at a time, "
+        ask = (f"Several things crashed on this machine ({where}). Go through them one at a time, "
                "in order, and check whether they share a cause.")
-        title = _("Diagnosis: {count} programs").format(count=len(pids))
-    prompt = (f"{ask}\n\nWhat systemd-coredump recorded:\n" + "\n".join(facts) +
+        title = _("Diagnosis: {count} programs").format(count=len(targets))
+    prompt = (f"{ask}\n\nWhat the journal recorded:\n" + "\n".join(facts) +
               f"\n\nUse the lili-diagnose-crash skill (if your tool has no skills, read {SKILL_FILE}), "
               f"and the notes for this distro in {notes_path()}. "
               "Don't change anything on the system; if there's a fix, propose it and ask before applying it. "
@@ -513,8 +675,8 @@ def main(args):
         set_config(rest[1], rest[2])
     elif command == "mark" and len(rest) >= 2:
         mark(rest[0], rest[1], " ".join(rest[2:]))
-    elif command == "notify" and len(rest) == 1 and rest[0].isdigit():
-        notify(int(rest[0]))
+    elif command == "notify" and len(rest) == 1 and (rest[0].isdigit() or is_boot(rest[0])):
+        notify(rest[0])
     elif command == "open" and not rest:
         open_window()
     elif command == "watch" and not rest:
@@ -523,8 +685,8 @@ def main(args):
         skill(rest[0])
     elif command == "install" and len(rest) == 1:
         install(rest[0])
-    elif command == "diagnose" and rest and all(r.isdigit() for r in rest):
-        diagnose([int(r) for r in rest])
+    elif command == "diagnose" and rest and all(r.isdigit() or is_boot(r) for r in rest):
+        diagnose(rest)
     else:
         sys.exit(__doc__.strip())
 
