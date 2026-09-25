@@ -90,7 +90,15 @@ if ((${#packages[@]})); then
     exit 1
   fi
   [[ $family == debian ]] && "${sudo[@]}" apt-get update -q
-  "${install[@]}" "${packages[@]}"
+  if ! "${install[@]}" "${packages[@]}"; then
+    # Refreshing the package list alone (pacman -Sy) is a partial upgrade, which Arch
+    # forbids, and a full -Syu is not the installer's call to make.
+    if [[ $family == arch ]]; then
+      echo "pacman couldn't find those packages, so its package list is out of date." >&2
+      echo "Update the system first (sudo pacman -Syu, or garuda-update on Garuda) and run ./install.sh again." >&2
+    fi
+    exit 1
+  fi
 fi
 
 # Ubuntu hands crashes to Apport by default. Installing systemd-coredump normally

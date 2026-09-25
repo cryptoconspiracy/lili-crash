@@ -15,6 +15,8 @@ images=("$@")
 
 check='
 mkdir -p /run/systemd/system
+# A real Arch always has a synced package list; the image ships without one.
+if command -v pacman >/dev/null; then pacman -Sy --noconfirm >/dev/null 2>&1; fi
 cd /lili && ./install.sh --yes >/tmp/install.log 2>&1 || { echo "install.sh failed:"; tail -15 /tmp/install.log; exit 1; }
 for cmd in coredumpctl python3 msgfmt notify-send xdg-open; do
   command -v "$cmd" >/dev/null || { echo "still missing: $cmd"; exit 1; }
