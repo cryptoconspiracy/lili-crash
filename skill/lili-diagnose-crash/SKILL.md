@@ -5,9 +5,11 @@ description: >
   dump, or why the whole computer froze, from the journal of the boot that froze. Use
   when a process segfaulted, aborted or dumped core, when someone asks why an app
   closed on its own, when the screen went black and the machine had to be forced off,
-  or when a Lili Crash notification is clicked. Triggers: crash, crashed, segfault,
-  SIGSEGV, SIGABRT, core dump, coredumpctl, "why did X close", "X keeps crashing",
-  freeze, froze, black screen, soft lockup, "had to hold the power button".
+  or when a Lili Crash notification is clicked. Also a Steam game that closed by
+  itself right after starting, from Steam's and Proton's logs. Triggers: crash,
+  crashed, segfault, SIGSEGV, SIGABRT, core dump, coredumpctl, "why did X close",
+  "X keeps crashing", freeze, froze, black screen, soft lockup, "had to hold the power
+  button", Steam game closes, Proton, "couldn't connect to Steam".
 ---
 
 # Diagnosing a crash
@@ -117,6 +119,39 @@ it. `journalctl --list-boots` shows its index; `-b <boot id>` works too.
 
 The freeze's state lives under the key `freeze`, so record it with
 `lili-crash mark 'freeze' diagnosed '<the cause in one sentence>'`.
+
+## When a Steam game closed by itself
+
+Lili flags a Steam game that stopped running less than two minutes after it started.
+There's usually no core dump: the game, or Proton under it, hit something it couldn't
+get past (often after showing a message box like "couldn't connect to Steam") and
+exited on its own. The prompt gives the time window, the compatibility tool and the
+launch command.
+
+- **Steam's logs** live in `logs/` under the Steam folder the prompt names.
+  `content_log.txt` has the run itself (`App Running` and back), `console_log.txt`
+  what the client did for the game (the `GameAction` launch steps, API calls that
+  failed), `console-linux.txt` the game's and Proton's own output, and
+  `connection_log.txt` whether Steam was logged on at the time. Each may have a
+  `.previous.txt` beside it. Read the window, not the whole file.
+- **Which Proton.** The launch command names it (`common/<tool>/proton`). The
+  per-game choice and the default are `CompatToolMapping` in `config/config.vdf`
+  (key `0` is the default). A game that fails on one Proton and runs on another
+  points at that Proton build, not at the game; say which one worked if the logs
+  show a later, longer run.
+- **The game's own log.** Proton games keep their files in
+  `steamapps/compatdata/<appid>/pfx/drive_c/users/steamuser/`. Unreal games log
+  under `AppData/Local/<game>/Saved/Logs`; Unity games under
+  `AppData/LocalLow/<studio>/<game>/Player.log`.
+- **When nothing explains it**, the next step is Proton's own log: the user adds
+  `PROTON_LOG=1 %command%` to the game's launch options, runs it again, and Proton
+  writes `~/steam-<appid>.log`. Propose it; don't set it yourself.
+- `Failed running app <id> (missing launch config)` for a Proton or Steam Linux
+  Runtime appid means someone launched the tool itself from the library. It isn't a
+  game and has nothing to run.
+
+Its state lives under the key `steam:<appid>`, so record it with
+`lili-crash mark 'steam:<appid>' diagnosed '<the cause in one sentence>'`.
 
 ## Report
 

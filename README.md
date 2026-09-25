@@ -25,6 +25,11 @@ so the next time you log in, Lili tells you what was going on right before it: t
 graphics driver stopped responding, the kernel got stuck, memory ran out, or nothing
 was logged at all. One click and the AI reads what happened on that boot.
 
+And she keeps an eye on **Steam games**. A game that closes by itself less than two
+minutes after you started it, usually after a message like "couldn't connect to
+Steam", leaves no crash record, only Steam's own logs. Lili notices, tells you which
+Proton it ran with, and hands the AI the lines Steam logged in that window.
+
 You don't need to know anything about Linux to use her.
 
 ## How it works, step by step
@@ -202,10 +207,10 @@ Everything Lili does is also a command:
 | Command | What it does |
 |---|---|
 | `lili-crash list` | Programs that crashed, newest first, as JSON |
-| `lili-crash diagnose <pid\|boot>...` | Open the AI on one or more crashes or freezes |
+| `lili-crash diagnose <pid\|boot\|steam-id>...` | Open the AI on one or more crashes, freezes or Steam games that closed early |
 | `lili-crash mark <binary> <state> [summary]` | Set a program to `new`, `diagnosed`, `resolved` or `ignored` |
-| `lili-crash notify <pid\|boot>` | Show the notification for one crash or freeze |
-| `lili-crash watch` | Notify every new crash, and a freeze from the boot before (the `lili-crash` user service runs this) |
+| `lili-crash notify <pid\|boot\|steam-id>` | Show the notification for one of them |
+| `lili-crash watch` | Notify every new crash, every Steam game that closes within two minutes, and a freeze from the boot before (the `lili-crash` user service runs this) |
 | `lili-crash install <agent>` | Run an AI's official installer in a terminal |
 | `lili-crash skill <path\|view\|edit\|reset>` | The notes for your distribution |
 | `lili-crash config [set <key> <value>]` | Settings shared with the tray icon |
@@ -214,10 +219,23 @@ Everything Lili does is also a command:
 and its state lives under the name `freeze`. Lili counts a boot as frozen when it ended
 without the "System is rebooting / powering down" that a normal shutdown logs.
 
+A Steam game is known by `steam-<appid>-<start>` and its state lives under
+`steam:<appid>`. Lili reads the runs from Steam's `logs/content_log.txt` (native,
+`~/.steam/steam` or the Flatpak), so the history lasts as long as Steam keeps that log.
+
 To check the installer on other distributions, `tests/install-in-containers.sh` runs it
 in clean Ubuntu, Debian, Fedora, openSUSE and Arch containers (needs podman).
 
 ## What's new
+
+### Next: Steam games that close by themselves
+
+A game that gives up right after starting (Proton can't reach Steam, a launcher
+fails) exits cleanly, so there was no crash for Lili to see. Now a Steam game that
+stops less than two minutes after it started counts: the notification says how long
+it lasted and which Proton ran it, and *Find out why* gives the AI the launch command
+and what Steam logged in that window. Ignoring a game works the same as ignoring a
+program.
 
 ### 0.3: when the whole computer freezes
 

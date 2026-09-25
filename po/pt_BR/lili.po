@@ -85,6 +85,31 @@ msgstr "A memória acabou"
 msgid "Nothing was logged before it stopped"
 msgstr "Nada foi registrado antes de parar"
 
+#: bin/lili-crash
+#, python-brace-format
+msgid "No early exit recorded for {id}"
+msgstr "Nenhum fechamento precoce registrado para {id}"
+
+#: bin/lili-crash
+#, python-brace-format
+msgid "Closed by itself {seconds} seconds after starting"
+msgstr "Fechou sozinho {seconds} segundos depois de abrir"
+
+#: bin/lili-crash
+#, python-brace-format
+msgid "{name} closed by itself"
+msgstr "{name} fechou sozinho"
+
+#: bin/lili-crash
+#, python-brace-format
+msgid "{reason}, {when}."
+msgstr "{reason}, {when}."
+
+#: bin/lili-crash
+#, python-brace-format
+msgid "It ran with {tool}."
+msgstr "Rodou com o {tool}."
+
 #: bin/lili-crash:263
 #, python-brace-format
 msgid "Unknown state: {state}. Use one of: {states}"

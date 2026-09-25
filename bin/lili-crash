@@ -3,10 +3,11 @@
 
   lili-crash list                       programs that crashed, newest first, as JSON
   lili-crash mark <binary> <state> [summary]
-  lili-crash notify <pid|boot>          desktop notification for one crash or freeze
-  lili-crash watch                      notify every new crash, and a freeze from the last boot (run by the lili-crash service)
+  lili-crash notify <pid|boot|steam-id> desktop notification for one crash, freeze or Steam game that closed early
+  lili-crash watch                      notify every new crash, a Steam game that closes within 2 minutes,
+                                        and a freeze from the last boot (run by the lili-crash service)
   lili-crash open                       Lili's window: usage and crash history
-  lili-crash diagnose <pid|boot>...     open Claude in a terminal to find out why
+  lili-crash diagnose <pid|boot|steam-id>...  open Claude in a terminal to find out why
   lili-crash config [set <key> <value>] settings shared with the tray widget
   lili-crash install <agent>            run the agent's official installer in a terminal
   lili-crash skill <path|view|edit|reset>  this distro's notes for the diagnosis skill
@@ -26,6 +27,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -251,6 +253,130 @@ def freezes():
     return [v["freeze"] for k, v in known.items() if k in present and v.get("freeze")]
 
 
+# A game that closes on its own right after starting leaves no core dump: Proton or
+# the game gives up and exits cleanly, often after a message box. Steam's own logs
+# are the only record, so a short run is the sign.
+EARLY_EXIT = 120
+STEAM_ROOTS = [Path.home() / ".local/share/Steam", Path.home() / ".steam/steam",
+               Path.home() / ".var/app/com.valvesoftware.Steam/.local/share/Steam"]
+STEAM_LINE = re.compile(r"^\[(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)\] (.*)")
+STEAM_STATE = re.compile(r"AppID (\d+) state changed : (.*)")
+# Noise every Proton launch prints: Steam preloads both overlay builds and one always misses.
+STEAM_NOISE = re.compile(r"gameoverlayrenderer\.so.*wrong ELF class|ThreadGetProcessExitCode|Shader update|"
+                         r"breakpad exception handler")
+STEAM_TROUBLE = re.compile(r"\b(err|errors?|fail(ed|ure)?|fatal|exception|crash(ed)?|abort(ed)?|timed out|timeout|"
+                           r"Logged Off|disconnect(ed)?)\b", re.I)
+
+
+def steam_root():
+    return next((r for r in STEAM_ROOTS if (r / "logs/content_log.txt").is_file()), None)
+
+
+def steam_time(stamp):
+    return int(datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S").timestamp())
+
+
+def steam_lines(root, name):
+    # Steam starts a fresh log once it grows, keeping the old one as .previous.
+    for path in (root / f"logs/{name}.previous.txt", root / f"logs/{name}.txt"):
+        try:
+            with open(path, errors="replace") as f:
+                for line in f:
+                    match = STEAM_LINE.match(line.rstrip("\n"))
+                    if match:
+                        yield steam_time(match.group(1)), match.group(2)
+        except OSError:
+            continue
+
+
+class SteamRuns:
+    """Pairs 'App Running' with the state change that clears it, line by line."""
+
+    def __init__(self):
+        self.started = {}
+
+    def feed(self, ts, text):
+        match = STEAM_STATE.match(text)
+        if not match:
+            return None
+        appid, running = match.group(1), "App Running" in match.group(2)
+        if running:
+            self.started.setdefault(appid, ts)
+        elif appid in self.started:
+            start = self.started.pop(appid)
+            return {"appid": appid, "start": start, "time": ts, "seconds": ts - start}
+        return None
+
+
+def steam_game(root, appid):
+    libraries = [root]
+    try:
+        libraries += [Path(p) for p in re.findall(r'"path"\s+"([^"]+)"', (root / "steamapps/libraryfolders.vdf").read_text())]
+    except OSError:
+        pass
+    for library in dict.fromkeys(libraries):
+        try:
+            name = re.search(r'"name"\s+"([^"]+)"', (library / f"steamapps/appmanifest_{appid}.acf").read_text())
+        except OSError:
+            continue
+        if name:
+            return name.group(1)
+    return f"AppID {appid}"
+
+
+def steam_icon(appid):
+    # Steam drops one of these for every game with a desktop shortcut.
+    for d in data_dirs():
+        if list(Path(d).glob(f"icons/hicolor/*/apps/steam_icon_{appid}.png")):
+            return f"steam_icon_{appid}"
+    return "steam"
+
+
+def early_exits():
+    root = steam_root()
+    if not root:
+        return []
+    runs, found = SteamRuns(), []
+    for ts, text in steam_lines(root, "content_log"):
+        run = runs.feed(ts, text)
+        if run and run["seconds"] < EARLY_EXIT:
+            found.append(run)
+    return found
+
+
+def steam_id(run):
+    return f"steam-{run['appid']}-{run['start']}"
+
+
+def is_steam(target):
+    return bool(re.fullmatch(r"steam-\d+-\d+", target))
+
+
+def find_early_exit(target):
+    for run in early_exits():
+        if steam_id(run) == target:
+            return run
+    sys.exit(_("No early exit recorded for {id}").format(id=target))
+
+
+def steam_evidence(root, run):
+    """What Steam logged while the game ran: how it was launched, and what went wrong."""
+    command, trouble, shapes = "", [], set()
+    for log in ("console_log", "console-linux", "connection_log"):
+        for ts, text in steam_lines(root, log):
+            if not run["start"] - 2 <= ts <= run["time"] + 5:
+                continue
+            if not command and f"Game process added : AppID {run['appid']} " in text:
+                command = text.split('"', 1)[-1].rstrip('"')
+            elif STEAM_TROUBLE.search(text) and not STEAM_NOISE.search(text):
+                shape = re.sub(r"\d+", "#", text)
+                if len(trouble) < 12 and shape not in shapes:
+                    shapes.add(shape)
+                    trouble.append(f"{log}: {text[:300]}")
+    tool = re.search(r"common/([^/']+)'?/proton ", command)
+    return (tool.group(1) if tool else ""), command, trouble
+
+
 def load_state():
     try:
         return json.loads(STATE_FILE.read_text())
@@ -310,7 +436,33 @@ def programs():
                      "reason": freeze_reason(last["kind"], last["tag"]), "when": when(last["time"])},
             "crashes": frozen,
         })
+    games = {}
+    for run in early_exits():
+        games.setdefault(run["appid"], []).append(run)
+    root = steam_root()
+    for appid, runs in games.items():
+        key = f"steam:{appid}"
+        state = saved.get(key, {})
+        fresh = [r for r in runs if r["time"] > state.get("until", 0)]
+        last = runs[-1]
+        tool, _command, _trouble = steam_evidence(root, last)
+        result.append({
+            "exe": key,
+            "name": steam_game(root, appid),
+            "icon": steam_icon(appid),
+            "state": "new" if fresh else state.get("state", "new"),
+            "summary": state.get("summary", ""),
+            "count": len(runs),
+            "fresh": len(fresh),
+            "last": {"id": steam_id(last), "signal": tool or "Steam", "time": last["time"],
+                     "reason": early_exit_reason(last["seconds"]), "when": when(last["time"])},
+            "crashes": runs,
+        })
     return sorted(result, key=lambda p: p["last"]["time"], reverse=True)
+
+
+def early_exit_reason(seconds):
+    return _("Closed by itself {seconds} seconds after starting").format(seconds=seconds)
 
 
 def find(pid):
@@ -334,6 +486,14 @@ def notify(target):
         icon, title = "computer", _("The computer froze")
         text = _("{reason}, {when}. It had to be forced off.").format(
             reason=freeze_reason(freeze["kind"], freeze["tag"]), when=when(freeze["time"]))
+    elif is_steam(target):
+        run = find_early_exit(target)
+        root = steam_root()
+        tool, _command, _trouble = steam_evidence(root, run)
+        icon, title = steam_icon(run["appid"]), _("{name} closed by itself").format(name=steam_game(root, run["appid"]))
+        text = _("{reason}, {when}.").format(reason=early_exit_reason(run["seconds"]), when=when(run["time"]))
+        if tool:
+            text += " " + _("It ran with {tool}.").format(tool=tool)
     else:
         program, crash = find(int(target))
         icon, title = program["icon"], _("{name} crashed").format(name=program["name"])
@@ -374,9 +534,29 @@ def notify_last_freeze():
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+def watch_steam(root):
+    """Follows Steam's content log and notifies each game that closed too soon."""
+    runs = SteamRuns()
+    # -F keeps following when Steam rotates the log to content_log.previous.txt.
+    follow = subprocess.Popen(["tail", "-F", "-n", "0", str(root / "logs/content_log.txt")],
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, errors="replace")
+    for line in follow.stdout:
+        match = STEAM_LINE.match(line.rstrip("\n"))
+        run = match and runs.feed(steam_time(match.group(1)), match.group(2))
+        if not run or run["seconds"] >= EARLY_EXIT:
+            continue
+        if load_state().get(f"steam:{run['appid']}", {}).get("state") == "ignored":
+            continue
+        subprocess.Popen([sys.argv[0], "notify", steam_id(run)], start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 def watch():
     """Follows the journal and notifies each new crash of this user's programs."""
     notify_last_freeze()
+    root = steam_root()
+    if root:
+        threading.Thread(target=watch_steam, args=(root,), daemon=True).start()
     last_seen = {}
     follow = subprocess.Popen(["journalctl", "-f", "-n", "0", "-o", "json", "--output-fields=COREDUMP_PID,COREDUMP_EXE,"
                                "COREDUMP_COMM,COREDUMP_UID", f"MESSAGE_ID={COREDUMP_MESSAGE_ID}"],
@@ -428,6 +608,20 @@ def diagnose(targets):
             names.append(_("The computer froze"))
             frozen.append(target)
             continue
+        if is_steam(target):
+            run, root = find_early_exit(target), steam_root()
+            name = steam_game(root, run["appid"])
+            tool, command, trouble = steam_evidence(root, run)
+            fmt = "%Y-%m-%d %H:%M:%S"
+            seen = "\n".join(f"    {line}" for line in trouble) or "    (nothing matched)"
+            facts.append(f"- Steam game {name} (AppID {run['appid']}) closed by itself {run['seconds']} seconds "
+                         f"after starting, from {datetime.fromtimestamp(run['start']).strftime(fmt)} to "
+                         f"{datetime.fromtimestamp(run['time']).strftime(fmt)}, with no core dump. "
+                         f"Compatibility tool: {tool or 'none found (native, or the launch line was not logged)'}. "
+                         f"Launch command: {command or 'not found'}. Steam's logs are in {root / 'logs'}; "
+                         f"lines Lili matched in that window (key 'steam:{run['appid']}'):\n{seen}")
+            names.append(name)
+            continue
         program, crash = find(int(target))
         stamp = datetime.fromtimestamp(crash["time"]).strftime("%Y-%m-%d %H:%M:%S")
         facts.append(f"- {program['name']}: PID {target}, binary {program['exe']}, signal {crash['signal']}, "
@@ -437,6 +631,9 @@ def diagnose(targets):
     where = f"{distro()[1]}, {os.environ.get('XDG_CURRENT_DESKTOP') or 'Linux desktop'}"
     if len(targets) == 1 and frozen:
         ask = f"This computer ({where}) froze and had to be forced off, and I'd like to know why."
+        title = _("Diagnosis: {name}").format(name=names[0])
+    elif len(targets) == 1 and is_steam(targets[0]):
+        ask = f"A Steam game closed by itself right after starting on this machine ({where}), and I'd like to know why."
         title = _("Diagnosis: {name}").format(name=names[0])
     elif len(targets) == 1:
         ask = f"A program crashed on this machine ({where}) and I'd like to know why."
@@ -675,7 +872,7 @@ def main(args):
         set_config(rest[1], rest[2])
     elif command == "mark" and len(rest) >= 2:
         mark(rest[0], rest[1], " ".join(rest[2:]))
-    elif command == "notify" and len(rest) == 1 and (rest[0].isdigit() or is_boot(rest[0])):
+    elif command == "notify" and len(rest) == 1 and (rest[0].isdigit() or is_boot(rest[0]) or is_steam(rest[0])):
         notify(rest[0])
     elif command == "open" and not rest:
         open_window()
@@ -685,7 +882,7 @@ def main(args):
         skill(rest[0])
     elif command == "install" and len(rest) == 1:
         install(rest[0])
-    elif command == "diagnose" and rest and all(r.isdigit() or is_boot(r) for r in rest):
+    elif command == "diagnose" and rest and all(r.isdigit() or is_boot(r) or is_steam(r) for r in rest):
         diagnose(rest)
     else:
         sys.exit(__doc__.strip())
