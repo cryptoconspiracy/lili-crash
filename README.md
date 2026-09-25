@@ -114,9 +114,9 @@ example `systemd-coredump` on Ubuntu and Debian), it tells you exactly which pac
 and asks before installing them; that's the only moment it may ask for your password.
 Everything else stays in your own folder.
 
-Then type **Lili** in your application menu to open her, or right-click the row of
-small icons next to your clock, choose *Configure System Tray > Entries*, and set
-**Lili Crash** to *Always shown*.
+That's all. Lili appears next to your clock right away, and from then on she starts
+by herself every time you log in: nothing to open, nothing to remember. You can also
+type **Lili** in your application menu to open her panel as a window.
 
 You'll also need an account with one of the AI assistants above (for example a
 Claude or ChatGPT subscription).

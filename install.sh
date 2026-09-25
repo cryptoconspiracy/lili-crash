@@ -187,10 +187,29 @@ if command -v kpackagetool6 >/dev/null; then
     fi
     dbus-send --session --type=method_call --dest=org.kde.KWin /KWin org.kde.KWin.reconfigure 2>/dev/null || true
   fi
-  widget_note="
+  # Puts Lili in every system tray, always shown. Plasma saves it with the panel,
+  # so she comes back on every login without anyone opening her.
+  tray_script='
+    for (const panel of panels())
+      for (const widget of panel.widgets())
+        if (widget.type == "org.kde.plasma.systemtray") {
+          widget.currentConfigGroup = ["General"];
+          for (const key of ["extraItems", "shownItems"]) {
+            let items = widget.readConfig(key);
+            if (!Array.isArray(items)) items = items ? String(items).split(",") : [];
+            if (items.indexOf("lili") < 0) items.push("lili");
+            widget.writeConfig(key, items);
+          }
+        }'
+  if command -v qdbus6 >/dev/null &&
+    qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "$tray_script" >/dev/null 2>&1; then
+    widget_note="
+Lili is in your system tray, next to the clock."
+  else
+    widget_note="
 To see Lili in the tray: right-click the system tray, Configure System Tray >
-Entries, and set Lili Crash to Always shown. If Plasma was already running an
-older version, restart it: systemctl --user restart plasma-plasmashell"
+Entries, and set Lili Crash to Always shown."
+  fi
 fi
 
 cat <<EOF
