@@ -1,0 +1,15 @@
+[Unit]
+Description=Lili Crash: notify when a program crashes
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/lili-crash watch
+Restart=on-failure
+# Notifications waiting for a click and the terminals they open are children of
+# this service; stopping or updating it must not take them down.
+KillMode=process
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

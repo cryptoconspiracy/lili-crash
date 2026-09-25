@@ -1,0 +1,17 @@
+{
+    "KPlugin": {
+        "Id": "lili",
+        "Name": "Lili Crash",
+        "Description": "Your AI usage limits, plus crash notifications with a one-click diagnosis",
+        "Icon": "lili-crash",
+        "Category": "System Information",
+        "Authors": [{ "Name": "Dan B" }],
+        "License": "MIT",
+        "Version": "0.2",
+        "Website": "https://github.com/cryptoconspiracy/lili-crash"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-NotificationArea": "true",
+    "X-Plasma-NotificationAreaCategory": "SystemServices"
+}

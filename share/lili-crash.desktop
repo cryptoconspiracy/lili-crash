@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Lili Crash
+Comment=Crash notifications with a one-click diagnosis
+Comment[pt_BR]=Notificações de falha com diagnóstico em um clique
+Icon=lili-crash
+Exec=lili-crash list
+NoDisplay=true

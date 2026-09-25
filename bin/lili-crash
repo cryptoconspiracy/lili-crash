@@ -1,0 +1,520 @@
+#!/usr/bin/python3
+"""Crash notifications, history and diagnosis on top of systemd-coredump.
+
+  lili-crash list                       programs that crashed, newest first, as JSON
+  lili-crash mark <binary> <state> [summary]
+  lili-crash notify <pid>               desktop notification for one crash
+  lili-crash watch                      notify every new crash (run by the lili-crash service)
+  lili-crash diagnose <pid>...          open Claude in a terminal to find out why
+  lili-crash config [set <key> <value>] settings shared with the tray widget
+  lili-crash install <agent>            run the agent's official installer in a terminal
+  lili-crash skill <path|view|edit|reset>  this distro's notes for the diagnosis skill
+
+A state (new, diagnosed, resolved, ignored) covers the crashes up to the moment it
+was saved. If the program crashes again afterwards, it is new again.
+"""
+
+import configparser
+import gettext
+import json
+import locale
+import os
+import re
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from datetime import date, datetime, timedelta
+from pathlib import Path
+
+LOCALEDIR = Path(__file__).resolve().parent.parent / "locale"
+try:
+    # Same rule as the rest of the desktop: glibc ignores LANGUAGE when the
+    # configured locale isn't generated, so KDE stays in English, and so do we.
+    locale.setlocale(locale.LC_MESSAGES, "")
+    _ = gettext.translation("lili", LOCALEDIR if LOCALEDIR.is_dir() else None, fallback=True).gettext
+except locale.Error:
+    _ = gettext.NullTranslations().gettext
+
+COREDUMP_MESSAGE_ID = "fc2e22bc6ee647b6b90729ab34a250b1"
+STATE_DIR = Path(os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state") / "lili"
+STATE_FILE = STATE_DIR / "state.json"
+STATES = ("new", "diagnosed", "resolved", "ignored")
+CONFIG_FILE = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "lili" / "config.json"
+
+
+def reason(signal):
+    return {
+        "SIGSEGV": _("Touched memory it didn't own"),
+        "SIGABRT": _("Gave up on an internal error"),
+        "SIGBUS": _("Read memory that was no longer there"),
+        "SIGFPE": _("Hit a math error, like dividing by zero"),
+        "SIGILL": _("Tried to run an invalid instruction"),
+        "SIGTRAP": _("Stopped at a debugger trap"),
+        "SIGSYS": _("Made a forbidden system call"),
+    }.get(signal) or _("Got signal {signal}").format(signal=signal)
+
+
+def when(ts):
+    moment = datetime.fromtimestamp(ts)
+    hour = moment.strftime("%H:%M")
+    if moment.date() == date.today():
+        return _("today at {time}").format(time=hour)
+    if moment.date() == date.today() - timedelta(days=1):
+        return _("yesterday at {time}").format(time=hour)
+    # Translators: strftime format for day and month, without the year.
+    return _("on {date} at {time}").format(date=moment.strftime(_("%m/%d")), time=hour)
+
+
+def data_dirs():
+    dirs = [os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local/share"),
+            str(Path.home() / ".local/share/flatpak/exports/share"), "/var/lib/flatpak/exports/share"]
+    dirs += (os.environ.get("XDG_DATA_DIRS") or "").split(":") + ["/usr/local/share", "/usr/share"]
+    return list(dict.fromkeys(d for d in dirs if d))
+
+
+def read_desktop(path):
+    parser = configparser.RawConfigParser(strict=False, interpolation=None)
+    parser.optionxform = str
+    try:
+        parser.read(path, encoding="utf-8")
+        return parser["Desktop Entry"]
+    except (configparser.Error, KeyError, UnicodeDecodeError):
+        return None
+
+
+def desktop_by_id(app_id):
+    for d in data_dirs():
+        path = Path(d) / "applications" / f"{app_id}.desktop"
+        if path.is_file():
+            return read_desktop(path)
+    return None
+
+
+def desktop_by_exec(base):
+    pattern = re.compile(rf"^([^ ]*/)?{re.escape(base)}( |$)")
+    for d in data_dirs():
+        for path in sorted((Path(d) / "applications").glob("*.desktop")):
+            entry = read_desktop(path)
+            if entry and pattern.match(entry.get("Exec", "")):
+                return entry
+    return None
+
+
+def localized(entry, key):
+    langs = (os.environ.get("LANGUAGE") or os.environ.get("LANG") or "").split(":")
+    for lang in langs:
+        lang = lang.split(".")[0]
+        for variant in (lang, lang.split("_")[0]):
+            if variant and entry.get(f"{key}[{variant}]"):
+                return entry[f"{key}[{variant}]"]
+    return entry.get(key)
+
+
+def identity(comm, exe, unit):
+    base = os.path.basename(exe) if exe else comm
+    entry = None
+    match = re.match(r"^app-flatpak-(.+)-\d+\.scope$", unit or "")
+    if match:
+        entry = desktop_by_id(match.group(1))
+    else:
+        # Anything started from a terminal lands in the terminal's scope, so the
+        # scope only counts when the .desktop actually runs this binary.
+        match = re.match(r"^app-(.+?)(@[^.]*\.service|-\d+\.scope)$", unit or "")
+        if match:
+            entry = desktop_by_id(match.group(1))
+            if entry and base not in entry.get("Exec", ""):
+                entry = None
+    entry = entry or desktop_by_exec(base)
+    if not entry:
+        return comm or base, "application-x-executable"
+    return localized(entry, "Name") or comm, entry.get("Icon") or "application-x-executable"
+
+
+def crashes():
+    fields = "COREDUMP_COMM,COREDUMP_EXE,COREDUMP_PID,COREDUMP_SIGNAL_NAME,COREDUMP_USER_UNIT,COREDUMP_TIMESTAMP,COREDUMP_UID"
+    out = subprocess.run(["journalctl", "-o", "json", "--no-pager", f"--output-fields={fields}",
+                          f"MESSAGE_ID={COREDUMP_MESSAGE_ID}"], capture_output=True, text=True).stdout
+    for line in out.splitlines():
+        try:
+            e = json.loads(line)
+            if e.get("COREDUMP_UID") != str(os.getuid()):
+                continue
+            yield {
+                "pid": int(e["COREDUMP_PID"]),
+                "comm": e.get("COREDUMP_COMM") or "",
+                "exe": e.get("COREDUMP_EXE") or "",
+                "signal": e.get("COREDUMP_SIGNAL_NAME") or "",
+                "unit": e.get("COREDUMP_USER_UNIT") or "",
+                "time": int(e.get("COREDUMP_TIMESTAMP") or e["__REALTIME_TIMESTAMP"]) // 1_000_000,
+            }
+        except (ValueError, KeyError, TypeError):
+            continue
+
+
+def load_state():
+    try:
+        return json.loads(STATE_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def mark(exe, state, summary=""):
+    if state not in STATES:
+        sys.exit(_("Unknown state: {state}. Use one of: {states}").format(state=state, states=", ".join(STATES)))
+    saved = load_state()
+    # Resolving or ignoring keeps the summary the diagnosis wrote.
+    saved[exe] = {"state": state, "until": int(time.time()), "summary": summary or saved.get(exe, {}).get("summary", "")}
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    tmp = STATE_FILE.with_suffix(".tmp")
+    tmp.write_text(json.dumps(saved, ensure_ascii=False, indent=1))
+    tmp.replace(STATE_FILE)
+
+
+def programs():
+    saved = load_state()
+    grouped = {}
+    for c in crashes():
+        grouped.setdefault(c["exe"] or c["comm"], []).append(c)
+    result = []
+    for exe, items in grouped.items():
+        items.sort(key=lambda c: c["time"])
+        last = items[-1]
+        name, icon = identity(last["comm"], last["exe"], last["unit"])
+        state = saved.get(exe, {})
+        fresh = [c for c in items if c["time"] > state.get("until", 0)]
+        result.append({
+            "exe": exe,
+            "name": name,
+            "icon": icon,
+            "state": "new" if fresh else state.get("state", "new"),
+            "summary": state.get("summary", ""),
+            "count": len(items),
+            "fresh": len(fresh),
+            "last": {**last, "reason": reason(last["signal"]), "when": when(last["time"])},
+            "crashes": items,
+        })
+    return sorted(result, key=lambda p: p["last"]["time"], reverse=True)
+
+
+def find(pid):
+    for p in programs():
+        for c in p["crashes"]:
+            if c["pid"] == pid:
+                return p, c
+    sys.exit(_("No core dump with PID {pid}").format(pid=pid))
+
+
+def notify(pid):
+    program, crash = find(pid)
+    # The configured locale may not be generated, and notify-send then refuses
+    # anything that isn't ASCII.
+    env = {**os.environ, "LC_ALL": "C.UTF-8"}
+    button = _("Find out why")
+    # "default" is a click on the notification body; Plasma doesn't draw it as a button.
+    action = subprocess.run(
+        ["notify-send", "--app-name=Lili Crash", f"--icon={program['icon']}", "--hint=string:desktop-entry:lili-crash", "--hint=boolean:transient:true", "--urgency=normal", "--expire-time=0",
+         f"--action=default={button}", f"--action=diagnose={button}",
+         _("{name} crashed").format(name=program["name"]),
+         _("{reason} ({signal}), {when}.").format(reason=reason(crash["signal"]), signal=crash["signal"],
+                                                   when=when(crash["time"]))],
+        env=env, capture_output=True, text=True).stdout.strip()
+    if action in ("default", "diagnose"):
+        diagnose([pid])
+
+
+def watch():
+    """Follows the journal and notifies each new crash of this user's programs."""
+    last_seen = {}
+    follow = subprocess.Popen(["journalctl", "-f", "-n", "0", "-o", "json", "--output-fields=COREDUMP_PID,COREDUMP_EXE,"
+                               "COREDUMP_COMM,COREDUMP_UID", f"MESSAGE_ID={COREDUMP_MESSAGE_ID}"],
+                              stdout=subprocess.PIPE, text=True)
+    for line in follow.stdout:
+        try:
+            e = json.loads(line)
+            pid = int(e["COREDUMP_PID"])
+        except (ValueError, KeyError, TypeError):
+            continue
+        if e.get("COREDUMP_UID") != str(os.getuid()):
+            continue
+        exe = e.get("COREDUMP_EXE") or e.get("COREDUMP_COMM") or ""
+        if load_state().get(exe, {}).get("state") == "ignored":
+            continue
+        # A program stuck in a crash loop would otherwise bury the screen in toasts.
+        if time.time() - last_seen.get(exe, 0) < 60:
+            continue
+        last_seen[exe] = time.time()
+        subprocess.Popen([sys.argv[0], "notify", str(pid)], start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def user_language():
+    for var in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
+        value = os.environ.get(var, "").split(":")[0].split(".")[0]
+        if value and value not in ("C", "POSIX"):
+            return value
+    return "en"
+
+
+def diagnose(pids):
+    facts, names = [], []
+    for pid in pids:
+        program, crash = find(pid)
+        stamp = datetime.fromtimestamp(crash["time"]).strftime("%Y-%m-%d %H:%M:%S")
+        facts.append(f"- {program['name']}: PID {pid}, binary {program['exe']}, signal {crash['signal']}, "
+                     f"{stamp}, {program['count']} crash(es) of this program in the journal")
+        names.append(program["name"])
+
+    where = f"{distro()[1]}, {os.environ.get('XDG_CURRENT_DESKTOP') or 'Linux desktop'}"
+    if len(pids) == 1:
+        ask = f"A program crashed on this machine ({where}) and I'd like to know why."
+        title = _("Diagnosis: {name}").format(name=names[0])
+    else:
+        ask = (f"Several programs crashed on this machine ({where}). Go through them one at a time, "
+               "in order, and check whether they share a cause.")
+        title = _("Diagnosis: {count} programs").format(count=len(pids))
+    prompt = (f"{ask}\n\nWhat systemd-coredump recorded:\n" + "\n".join(facts) +
+              f"\n\nUse the lili-diagnose-crash skill (if your tool has no skills, read {SKILL_FILE}), "
+              f"and the notes for this distro in {notes_path()}. "
+              "Don't change anything on the system; if there's a fix, propose it and ask before applying it. "
+              f"Reply in the user's language ({user_language()}).")
+
+    settings = load_config()
+    agent = AGENTS.get(settings["agent"], AGENTS["claude"])
+    binary = which(agent["command"])
+    if not binary:
+        sys.exit(_("{agent} isn't installed: {url}").format(agent=agent["name"], url=agent["url"]))
+    model = settings.get(f"{settings['agent']}_model", "default")
+    argv = [binary]
+    if agent["model_flag"] and model != "default":
+        argv += [agent["model_flag"], model]
+    argv += agent["prompt"]
+
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    fd, prompt_file = tempfile.mkstemp(dir=STATE_DIR, prefix="prompt-")
+    with os.fdopen(fd, "w") as f:
+        f.write(prompt)
+    command = " ".join('"$prompt"' if a is PROMPT else shlex.quote(a) for a in argv)
+    open_terminal(title, f"prompt=$(cat {shlex.quote(prompt_file)})\n"
+                         f"rm -f {shlex.quote(prompt_file)}\n"
+                         f"{command}\n")
+
+
+def install(name):
+    agent = AGENTS.get(name) or sys.exit(_("Unknown agent: {agent}").format(agent=name))
+    done = _("Done. You can close this window.")
+    open_terminal(_("Installing {agent}").format(agent=agent["name"]),
+                  f"echo {shlex.quote('$ ' + agent['install'])}\n{agent['install']}\necho\necho {shlex.quote(done)}\n")
+
+
+def open_terminal(title, script):
+    settings = load_config()
+    shell = shutil.which(settings["shell"]) or os.environ.get("SHELL") or "/bin/sh"
+    # Agents won't remember trust for the whole home directory, so they run here.
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    # Terminals mangle command lines in their own ways (Konsole expands $VARS before
+    # passing them on), so the terminal only ever gets "sh <file>" and the real work
+    # happens in a script it can't reinterpret. The shell stays open afterwards.
+    fd, launcher = tempfile.mkstemp(dir=STATE_DIR, prefix="launch-", suffix=".sh")
+    with os.fdopen(fd, "w") as f:
+        f.write(f"rm -f {shlex.quote(launcher)}\n{script}exec {shlex.quote(shell)} -i\n")
+    argv = terminal_command(settings["terminal"], str(STATE_DIR), title, ["sh", launcher])
+    # Started from inside another agent session, these would make the new agent
+    # think it's that session's child (Claude Code then stops saving transcripts).
+    env = {k: v for k, v in os.environ.items() if k not in SESSION_MARKERS}
+    os.execvpe(argv[0], argv, env)
+
+
+SESSION_MARKERS = {"CLAUDECODE", "CLAUDE_PID", "CLAUDE_EFFORT", "CLAUDE_AGENT_SDK_VERSION", "CLAUDE_CODE_CHILD_SESSION",
+                   "CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_SESSION_ATTENDED", "CLAUDE_CODE_ENTRYPOINT",
+                   "CLAUDE_CODE_EXECPATH", "CLAUDE_CODE_MESSAGING_SOCKET", "CLAUDE_CODE_MESSAGING_TOKEN",
+                   "CLAUDE_CODE_ENABLE_TASKS", "CLAUDE_CODE_ENABLE_SDK_FILE_CHECKPOINTING", "CODEX_SANDBOX",
+                   "CODEX_SANDBOX_NETWORK_DISABLED"}
+
+
+PROMPT = object()
+
+# How each agent opens an interactive session seeded with a prompt, without the
+# flags that make it act without asking: diagnosis reads, the user decides.
+AGENTS = {
+    "claude": {"name": "Claude Code", "command": "claude", "model_flag": "--model", "prompt": ["--", PROMPT],
+               "url": "https://code.claude.com", "install": "curl -fsSL https://claude.ai/install.sh | bash"},
+    "codex": {"name": "Codex", "command": "codex", "model_flag": "-m", "prompt": ["--", PROMPT],
+              "url": "https://github.com/openai/codex", "install": "curl -fsSL https://chatgpt.com/codex/install.sh | sh"},
+    "opencode": {"name": "OpenCode", "command": "opencode", "model_flag": "-m", "prompt": ["--prompt", PROMPT],
+                 "url": "https://opencode.ai", "install": "curl -fsSL https://opencode.ai/install | bash"},
+    "gemini": {"name": "Gemini CLI", "command": "gemini", "model_flag": "-m", "prompt": ["-i", PROMPT],
+               "url": "https://github.com/google-gemini/gemini-cli", "install": "npm install -g @google/gemini-cli"},
+    "agy": {"name": "Antigravity CLI", "command": "agy", "model_flag": None, "prompt": ["--prompt-interactive", PROMPT],
+            "url": "https://antigravity.google", "install": "curl -fsSL https://antigravity.google/cli/install.sh | bash"},
+    "copilot": {"name": "GitHub Copilot CLI", "command": "copilot", "model_flag": "--model",
+                "prompt": ["--interactive", PROMPT],
+                "url": "https://github.com/github/copilot-cli", "install": "curl -fsSL https://gh.io/copilot-install | bash"},
+    # A bare prompt naming a subcommand (update, login) would run it, so the agent subcommand is explicit.
+    "cursor": {"name": "Cursor CLI", "command": "cursor-agent", "model_flag": "--model", "prompt": ["agent", "--", PROMPT],
+               "url": "https://cursor.com/cli", "install": "curl -fsS https://cursor.com/install | bash"},
+    "grok": {"name": "Grok CLI", "command": "grok", "model_flag": None, "prompt": ["--", PROMPT],
+             "url": "https://x.ai/cli", "install": "curl -fsSL https://x.ai/cli/install.sh | bash"},
+}
+SKILL_FILE = Path(__file__).resolve().parent.parent / "skill" / "lili-diagnose-crash" / "SKILL.md"
+DISTRO_NOTES = SKILL_FILE.parent / "distros"
+USER_NOTES = CONFIG_FILE.parent / "skills"
+
+
+def os_release():
+    try:
+        text = Path("/etc/os-release").read_text()
+    except OSError:
+        return {}
+    return {k: v.strip('"') for k, _, v in (line.partition("=") for line in text.splitlines()) if v}
+
+
+def distro():
+    info = os_release()
+    candidates = [info.get("ID", "")] + info.get("ID_LIKE", "").split()
+    for candidate in candidates:
+        key = "opensuse" if candidate.startswith("opensuse") else candidate
+        if key and (DISTRO_NOTES / f"{key}.md").is_file():
+            return key, info.get("PRETTY_NAME") or info.get("NAME") or key
+    return "generic", info.get("PRETTY_NAME") or "Linux"
+
+
+def notes_path():
+    key, _name = distro()
+    edited = USER_NOTES / f"{key}.md"
+    return edited if edited.is_file() else DISTRO_NOTES / f"{key}.md"
+
+
+def skill(action):
+    key, _name = distro()
+    edited = USER_NOTES / f"{key}.md"
+    if action == "path":
+        print(notes_path())
+    elif action == "view":
+        # The default notes live in the install; hand out a read-only copy so a
+        # "view" can't turn into an accidental edit of the shipped file.
+        source = notes_path()
+        if source != edited:
+            fd, copy = tempfile.mkstemp(prefix=f"lili-{key}-", suffix=".md")
+            with os.fdopen(fd, "w") as f:
+                f.write(source.read_text())
+            os.chmod(copy, 0o444)
+            source = copy
+        subprocess.Popen(["xdg-open", str(source)], start_new_session=True)
+    elif action == "edit":
+        if not edited.is_file():
+            USER_NOTES.mkdir(parents=True, exist_ok=True)
+            edited.write_text((DISTRO_NOTES / f"{key}.md").read_text())
+        subprocess.Popen(["xdg-open", str(edited)], start_new_session=True)
+    elif action == "reset":
+        edited.unlink(missing_ok=True)
+    else:
+        sys.exit(__doc__.strip())
+
+
+TERMINALS = {
+    "konsole": lambda cwd, title, cmd: ["konsole", "--workdir", cwd, "-p", f"tabtitle={title}", "-e", *cmd],
+    "kitty": lambda cwd, title, cmd: ["kitty", "--directory", cwd, "--title", title, *cmd],
+    "alacritty": lambda cwd, title, cmd: ["alacritty", "--working-directory", cwd, "--title", title, "-e", *cmd],
+    "wezterm": lambda cwd, title, cmd: ["wezterm", "start", "--cwd", cwd, "--", *cmd],
+    "foot": lambda cwd, title, cmd: ["foot", f"--working-directory={cwd}", f"--title={title}", *cmd],
+    "gnome-terminal": lambda cwd, title, cmd: ["gnome-terminal", f"--working-directory={cwd}", f"--title={title}", "--", *cmd],
+}
+
+
+def which(command):
+    # Agent installers drop their binary in ~/.local/bin, which a systemd user
+    # service doesn't have on PATH on every distro.
+    return shutil.which(command, path=os.pathsep.join([os.environ.get("PATH", ""), str(Path.home() / ".local/bin")]))
+
+
+def installed_terminals():
+    return [t for t in TERMINALS if shutil.which(t)]
+
+
+def terminal_command(choice, cwd, title, cmd):
+    if choice == "auto" or not shutil.which(choice):
+        preferred = os.path.basename(os.environ.get("TERMINAL", ""))
+        desktop = os.environ.get("XDG_CURRENT_DESKTOP", "")
+        order = [preferred, "konsole" if "KDE" in desktop else "gnome-terminal", *TERMINALS]
+        choice = next((t for t in order if t in TERMINALS and shutil.which(t)), None)
+        if not choice:
+            sys.exit(_("No supported terminal found: {terminals}").format(terminals=", ".join(TERMINALS)))
+    return TERMINALS[choice](cwd, title, cmd)
+
+
+DEFAULTS = {"avatar": "lili2", "agent": "claude", "terminal": "auto", "shell": "fish",
+            **{f"{a}_model": "default" for a, spec in AGENTS.items() if spec["model_flag"]}}
+
+
+def load_config():
+    try:
+        saved = json.loads(CONFIG_FILE.read_text())
+    except (OSError, ValueError):
+        saved = {}
+    return {**DEFAULTS, **{k: v for k, v in saved.items() if k in DEFAULTS and isinstance(v, str)}}
+
+
+def set_config(key, value):
+    if key not in DEFAULTS:
+        sys.exit(_("Unknown setting: {key}. Use one of: {keys}").format(key=key, keys=", ".join(DEFAULTS)))
+    settings = load_config()
+    settings[key] = value
+    CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    CONFIG_FILE.write_text(json.dumps(settings, indent=1))
+    if key == "avatar":
+        point_icon(value)
+
+
+ICON_DIR = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share") / "icons/hicolor/128x128/apps"
+
+
+def point_icon(avatar):
+    # The themed icon follows the chosen avatar, so the taskbar, the widget list
+    # and the notifications all show the same Lili.
+    target = ICON_DIR / f"lili-crash-{avatar}.png"
+    if not target.is_file():
+        return
+    link = ICON_DIR / "lili-crash.png"
+    tmp = ICON_DIR / ".lili-crash.png.new"
+    tmp.unlink(missing_ok=True)
+    tmp.symlink_to(target.name)
+    tmp.replace(link)
+    ICON_DIR.parent.parent.touch()
+
+
+def main(args):
+    command, rest = (args[0], args[1:]) if args else ("", [])
+    if command == "list" and not rest:
+        found = programs()
+        for p in found:
+            p.pop("crashes")
+        print(json.dumps({"programs": found, "pending": sum(p["state"] == "new" for p in found)}, ensure_ascii=False))
+    elif command == "config" and not rest:
+        key, name = distro()
+        print(json.dumps({**load_config(), "terminals": installed_terminals(),
+                          "agents": [{"id": a, "name": spec["name"], "installed": bool(which(spec["command"])),
+                                      "models": bool(spec["model_flag"])} for a, spec in AGENTS.items()],
+                          "distro": {"key": key, "name": name, "edited": (USER_NOTES / f"{key}.md").is_file()}}))
+    elif command == "config" and len(rest) == 3 and rest[0] == "set":
+        set_config(rest[1], rest[2])
+    elif command == "mark" and len(rest) >= 2:
+        mark(rest[0], rest[1], " ".join(rest[2:]))
+    elif command == "notify" and len(rest) == 1 and rest[0].isdigit():
+        notify(int(rest[0]))
+    elif command == "watch" and not rest:
+        watch()
+    elif command == "skill" and len(rest) == 1:
+        skill(rest[0])
+    elif command == "install" and len(rest) == 1:
+        install(rest[0])
+    elif command == "diagnose" and rest and all(r.isdigit() for r in rest):
+        diagnose([int(r) for r in rest])
+    else:
+        sys.exit(__doc__.strip())
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

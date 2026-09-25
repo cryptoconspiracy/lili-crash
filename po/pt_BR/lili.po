@@ -1,0 +1,128 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: lili-crash\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-25 12:10-0300\n"
+"PO-Revision-Date: 2026-09-25 12:00-0300\n"
+"Last-Translator: Dan B\n"
+"Language-Team: Portuguese (Brazil)\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: bin/lili-crash:49
+msgid "Touched memory it didn't own"
+msgstr "Acessou memória que não era dele"
+
+#: bin/lili-crash:50
+msgid "Gave up on an internal error"
+msgstr "Desistiu por um erro interno"
+
+#: bin/lili-crash:51
+msgid "Read memory that was no longer there"
+msgstr "Leu memória que já não existia"
+
+#: bin/lili-crash:52
+msgid "Hit a math error, like dividing by zero"
+msgstr "Errou uma conta, como dividir por zero"
+
+#: bin/lili-crash:53
+msgid "Tried to run an invalid instruction"
+msgstr "Tentou executar uma instrução inválida"
+
+#: bin/lili-crash:54
+msgid "Stopped at a debugger trap"
+msgstr "Parou num ponto de depuração"
+
+#: bin/lili-crash:55
+msgid "Made a forbidden system call"
+msgstr "Fez uma chamada de sistema proibida"
+
+#: bin/lili-crash:56
+#, python-brace-format
+msgid "Got signal {signal}"
+msgstr "Recebeu o sinal {signal}"
+
+#: bin/lili-crash:63
+#, python-brace-format
+msgid "today at {time}"
+msgstr "hoje às {time}"
+
+#: bin/lili-crash:65
+#, python-brace-format
+msgid "yesterday at {time}"
+msgstr "ontem às {time}"
+
+#: bin/lili-crash:67
+#, python-brace-format
+msgid "on {date} at {time}"
+msgstr "em {date} às {time}"
+
+#: bin/lili-crash:67
+msgid "%m/%d"
+msgstr "%d/%m"
+
+#: bin/lili-crash:165
+#, python-brace-format
+msgid "Unknown state: {state}. Use one of: {states}"
+msgstr "Estado desconhecido: {state}. Use um destes: {states}"
+
+#: bin/lili-crash:206
+#, python-brace-format
+msgid "No core dump with PID {pid}"
+msgstr "Nenhum core dump com o PID {pid}"
+
+#: bin/lili-crash:214
+msgid "Find out why"
+msgstr "Descobrir o porquê"
+
+#: bin/lili-crash:219
+#, python-brace-format
+msgid "{name} crashed"
+msgstr "{name} fechou sozinho"
+
+#: bin/lili-crash:220
+#, python-brace-format
+msgid "{reason} ({signal}), {when}."
+msgstr "{reason} ({signal}), {when}."
+
+#: bin/lili-crash:247
+#, python-brace-format
+msgid "Diagnosis: {name}"
+msgstr "Diagnóstico: {name}"
+
+#: bin/lili-crash:251
+#, python-brace-format
+msgid "Diagnosis: {count} programs"
+msgstr "Diagnóstico: {count} programas"
+
+#: bin/lili-crash:262
+#, python-brace-format
+msgid "{agent} isn't installed: {url}"
+msgstr "{agent} não está instalado: {url}"
+
+#: bin/lili-crash:280
+#, python-brace-format
+msgid "Unknown agent: {agent}"
+msgstr "Agente desconhecido: {agent}"
+
+#: bin/lili-crash:281
+msgid "Done. You can close this window."
+msgstr "Pronto. Pode fechar esta janela."
+
+#: bin/lili-crash:282
+#, python-brace-format
+msgid "Installing {agent}"
+msgstr "Instalando {agent}"
+
+#: bin/lili-crash:412
+#, python-brace-format
+msgid "No supported terminal found: {terminals}"
+msgstr "Nenhum terminal compatível encontrado: {terminals}"
+
+#: bin/lili-crash:430
+#, python-brace-format
+msgid "Unknown setting: {key}. Use one of: {keys}"
+msgstr "Configuração desconhecida: {key}. Use uma destas: {keys}"

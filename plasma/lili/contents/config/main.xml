@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+  <group name="General">
+    <entry name="avatar" type="String"><default>lili2</default></entry>
+    <entry name="agent" type="String"><default>claude</default></entry>
+    <entry name="claude_model" type="String"><default>default</default></entry>
+    <entry name="codex_model" type="String"><default>default</default></entry>
+    <entry name="opencode_model" type="String"><default>default</default></entry>
+    <entry name="gemini_model" type="String"><default>default</default></entry>
+    <entry name="copilot_model" type="String"><default>default</default></entry>
+    <entry name="cursor_model" type="String"><default>default</default></entry>
+    <entry name="terminal" type="String"><default>auto</default></entry>
+    <entry name="shell" type="String"><default>fish</default></entry>
+  </group>
+</kcfg>
