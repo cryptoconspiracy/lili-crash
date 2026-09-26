@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: lili-crash\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-25 21:46-0300\n"
+"POT-Creation-Date: 2026-09-25 22:02-0300\n"
 "PO-Revision-Date: 2026-09-25 12:00-0300\n"
 "Last-Translator: Dan B\n"
 "Language-Team: Portuguese (Brazil)\n"
@@ -98,18 +98,24 @@ msgstr "Shell depois:"
 msgid "Lili speaks your system's language."
 msgstr "A Lili fala o idioma do seu sistema."
 
-#: plasma/lili/contents/ui/configSupport.qml:48
+#: plasma/lili/contents/ui/configSupport.qml:35
+msgid "EVM networks"
+msgstr "Redes EVM"
+
+#: plasma/lili/contents/ui/configSupport.qml:51
 msgid ""
 "Lili Crash is free and stays free. If she saved you an evening of digging "
 "through logs, a donation keeps her going."
-msgstr "O Lili Crash é gratuito e vai continuar assim. Se ela te poupou uma noite vasculhando logs, uma doação ajuda a mantê-la."
+msgstr ""
+"O Lili Crash é gratuito e vai continuar assim. Se ela te poupou uma noite "
+"vasculhando logs, uma doação ajuda a mantê-la."
 
-#: plasma/lili/contents/ui/configSupport.qml:83
-#: plasma/lili/contents/ui/configSupport.qml:94
+#: plasma/lili/contents/ui/configSupport.qml:95
+#: plasma/lili/contents/ui/configSupport.qml:106
 msgid "Copy"
 msgstr "Copiar"
 
-#: plasma/lili/contents/ui/configSupport.qml:88
+#: plasma/lili/contents/ui/configSupport.qml:100
 msgid "Copied"
 msgstr "Copiado"
 

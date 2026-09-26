@@ -30,7 +30,10 @@ KCM.SimpleKCM {
     property string cfg_shellDefault
 
     readonly property var wallets: [
-        { name: "Bitcoin", address: "bc1q2nqp9d8lc0u6z7v9ag4u52sv9g9afepgyyrwu4", qr: "../images/donate-btc.png" },
+        { name: "Bitcoin", address: "bc1q2nqp9d8lc0u6z7v9ag4u52sv9g9afepgyyrwu4", qr: "../images/donate-btc.png", networks: "" },
+        // One address takes donations on every EVM network Vurto Swap supports.
+        { name: i18n("EVM networks"), address: "0x930CD3e9de6F2dB03709667C9799d073b34FEaCc", qr: "../images/donate-evm.png",
+          networks: "Ethereum · Optimism · BNB Chain · Gnosis · Polygon · Base · Arbitrum One · Avalanche · Unichain" },
     ]
 
     // QML has no clipboard API; a hidden text field can copy its own text.
@@ -60,6 +63,15 @@ KCM.SimpleKCM {
                     text: modelData.name
                     Layout.alignment: Qt.AlignHCenter
                 }
+                QQC2.Label {
+                    visible: modelData.networks !== ""
+                    text: modelData.networks
+                    opacity: 0.7
+                    wrapMode: Text.Wrap
+                    horizontalAlignment: Text.AlignHCenter
+                    Layout.maximumWidth: Kirigami.Units.gridUnit * 24
+                    Layout.alignment: Qt.AlignHCenter
+                }
                 Image {
                     source: Qt.resolvedUrl(modelData.qr)
                     Layout.preferredWidth: Kirigami.Units.gridUnit * 10
@@ -75,7 +87,7 @@ KCM.SimpleKCM {
                         readOnly: true
                         selectByMouse: true
                         font.family: "monospace"
-                        Layout.preferredWidth: Kirigami.Units.gridUnit * 20
+                        Layout.preferredWidth: Kirigami.Units.gridUnit * 22
                     }
                     QQC2.Button {
                         id: copy
