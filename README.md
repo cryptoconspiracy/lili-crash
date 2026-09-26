@@ -272,6 +272,21 @@ Linux family, and Lili next to your clock with your AI usage.
 Found something Lili could do better? When the AI notices it during a diagnosis, it
 offers to open an issue here for you.
 
+## Support the project
+
+Lili Crash is free and stays free. If she saved you an evening of digging through logs,
+a donation keeps her going.
+
+<p align="center"><img src="assets/donate/btc.png" width="200" alt="Bitcoin donation QR code"></p>
+
+**Bitcoin**: scan the code, or copy the address (the button at the right of the box):
+
+```text
+bc1q2nqp9d8lc0u6z7v9ag4u52sv9g9afepgyyrwu4
+```
+
+The same code is in Lili's settings, under **Support**, with a Copy button.
+
 ## Credits
 
 The idea and the investigation method come from [Omarchy](https://github.com/omacom/omarchy)

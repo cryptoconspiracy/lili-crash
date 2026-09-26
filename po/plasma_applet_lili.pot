@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: lili-crash\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-25 12:12-0300\n"
+"POT-Creation-Date: 2026-09-25 21:46-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -101,6 +101,21 @@ msgstr ""
 msgid "Lili speaks your system's language."
 msgstr ""
 
+#: plasma/lili/contents/ui/configSupport.qml:48
+msgid ""
+"Lili Crash is free and stays free. If she saved you an evening of digging "
+"through logs, a donation keeps her going."
+msgstr ""
+
+#: plasma/lili/contents/ui/configSupport.qml:83
+#: plasma/lili/contents/ui/configSupport.qml:94
+msgid "Copy"
+msgstr ""
+
+#: plasma/lili/contents/ui/configSupport.qml:88
+msgid "Copied"
+msgstr ""
+
 #: plasma/lili/contents/ui/main.qml:38
 msgid "Not installed"
 msgstr ""
@@ -175,7 +190,7 @@ msgstr ""
 msgid "Diagnosed"
 msgstr ""
 
-#: plasma/lili/contents/ui/main.qml:296 plasma/lili/contents/ui/main.qml:421
+#: plasma/lili/contents/ui/main.qml:296 plasma/lili/contents/ui/main.qml:422
 msgid "Resolved"
 msgstr ""
 
@@ -229,14 +244,18 @@ msgstr ""
 msgid "Diagnose again"
 msgstr ""
 
-#: plasma/lili/contents/ui/main.qml:427
+#: plasma/lili/contents/ui/main.qml:428
 msgid "Ignore"
 msgstr ""
 
-#: plasma/lili/contents/ui/main.qml:433
+#: plasma/lili/contents/ui/main.qml:434
 msgid "Reopen"
 msgstr ""
 
 #: plasma/lili/contents/config/config.qml:6
 msgid "General"
+msgstr ""
+
+#: plasma/lili/contents/config/config.qml:11
+msgid "Support"
 msgstr ""
