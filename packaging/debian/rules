@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	$(MAKE) locales
+
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	$(MAKE) check
+endif
+
+override_dh_auto_install:
+	$(MAKE) PREFIX=/usr DESTDIR=$(CURDIR)/debian/lili-crash install
+	rm -rf $(CURDIR)/debian/lili-crash/usr/share/licenses

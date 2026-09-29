@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Lets GNOME Software, KDE Discover and other app stores list Lili Crash. -->
+<component type="desktop-application">
+  <id>io.github.cryptoconspiracy.LiliCrash</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Lili Crash</name>
+  <summary>Find out why a program closed by itself, in plain words</summary>
+  <summary xml:lang="pt-BR">Descubra por que um programa fechou sozinho, em palavras simples</summary>
+  <developer id="io.github.cryptoconspiracy">
+    <name>Dan B</name>
+  </developer>
+  <description>
+    <p>
+      When a program on your computer crashes, Lili lets you know, and with one click she
+      asks an AI assistant such as Claude Code or Codex to investigate and explain what
+      happened, whether you lost anything, and whether it will happen again.
+    </p>
+    <ul>
+      <li>Notifies every program that crashes, from systemd-coredump</li>
+      <li>Notices when the whole computer froze and tells you what happened right before</li>
+      <li>Notices a Steam game that closes by itself right after starting</li>
+      <li>Notices an app that won't open and shows the first thing it complained about</li>
+      <li>Shows your AI usage limits next to the clock on KDE Plasma</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">lili-crash.desktop</launchable>
+  <url type="homepage">https://github.com/cryptoconspiracy/lili-crash</url>
+  <url type="bugtracker">https://github.com/cryptoconspiracy/lili-crash/issues</url>
+  <url type="donation">https://github.com/cryptoconspiracy/lili-crash#support-the-project</url>
+  <url type="vcs-browser">https://github.com/cryptoconspiracy/lili-crash</url>
+  <categories>
+    <category>System</category>
+    <category>Monitor</category>
+  </categories>
+  <keywords>
+    <keyword>crash</keyword>
+    <keyword>coredump</keyword>
+    <keyword>segfault</keyword>
+    <keyword>diagnosis</keyword>
+    <keyword>AI</keyword>
+  </keywords>
+  <screenshots>
+    <screenshot type="default">
+      <caption>A program crashed, and Lili tells you</caption>
+      <image>https://raw.githubusercontent.com/cryptoconspiracy/lili-crash/main/assets/screenshots/notification.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The AI investigating the crash</caption>
+      <image>https://raw.githubusercontent.com/cryptoconspiracy/lili-crash/main/assets/screenshots/diagnosis.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Lili's panel with the crash history</caption>
+      <image>https://raw.githubusercontent.com/cryptoconspiracy/lili-crash/main/assets/screenshots/popup.png</image>
+    </screenshot>
+  </screenshots>
+  <provides>
+    <binary>lili-crash</binary>
+  </provides>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.3" date="2026-09-25">
+      <description>
+        <p>Lili notices when the whole computer froze.</p>
+      </description>
+    </release>
+  </releases>
+</component>

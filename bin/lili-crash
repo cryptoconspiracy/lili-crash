@@ -13,6 +13,7 @@
   lili-crash config [set <key> <value>] settings shared with the tray widget
   lili-crash install <agent>            run the agent's official installer in a terminal
   lili-crash skill <path|view|edit|reset>  this distro's notes for the diagnosis skill
+  lili-crash setup                      per-user setup after installing a package: service, tray, skill
 
 A state (new, diagnosed, resolved, ignored) covers the crashes up to the moment it
 was saved. If the program crashes again afterwards, it is new again.
@@ -35,7 +36,11 @@ import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-LOCALEDIR = Path(__file__).resolve().parent.parent / "locale"
+# A checkout keeps the skill next to bin/; a package puts Lili's data in /usr/share/lili-crash.
+ROOT = Path(__file__).resolve().parent.parent
+if not (ROOT / "skill").is_dir():
+    ROOT = ROOT / "share" / "lili-crash"
+LOCALEDIR = ROOT / "locale"
 try:
     # Same rule as the rest of the desktop: glibc ignores LANGUAGE when the
     # configured locale isn't generated, so KDE stays in English, and so do we.
@@ -897,7 +902,7 @@ AGENTS = {
     "grok": {"name": "Grok CLI", "command": "grok", "model_flag": None, "prompt": ["--", PROMPT],
              "url": "https://x.ai/cli", "install": "curl -fsSL https://x.ai/cli/install.sh | bash"},
 }
-SKILL_FILE = Path(__file__).resolve().parent.parent / "skill" / "lili-diagnose-crash" / "SKILL.md"
+SKILL_FILE = ROOT / "skill" / "lili-diagnose-crash" / "SKILL.md"
 DISTRO_NOTES = SKILL_FILE.parent / "distros"
 USER_NOTES = CONFIG_FILE.parent / "skills"
 
@@ -1016,15 +1021,78 @@ ICON_DIR = Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share")
 def point_icon(avatar):
     # The themed icon follows the chosen avatar, so the taskbar, the widget list
     # and the notifications all show the same Lili.
-    target = ICON_DIR / f"lili-crash-{avatar}.png"
+    name = f"lili-crash-{avatar}.png"
+    target = ICON_DIR / name
     if not target.is_file():
-        return
+        # A package installs the avatars for everyone; the choice stays per user.
+        target = next((p for d in data_dirs() if (p := Path(d) / "icons/hicolor/128x128/apps" / name).is_file()), None)
+        if target is None:
+            return
+    ICON_DIR.mkdir(parents=True, exist_ok=True)
     link = ICON_DIR / "lili-crash.png"
     tmp = ICON_DIR / ".lili-crash.png.new"
     tmp.unlink(missing_ok=True)
-    tmp.symlink_to(target.name)
+    tmp.symlink_to(target.name if target.parent == ICON_DIR else target)
     tmp.replace(link)
     ICON_DIR.parent.parent.touch()
+
+
+# Puts Lili in every system tray, always shown. Plasma saves it with the panel,
+# so she comes back on every login without anyone opening her.
+TRAY_SCRIPT = """
+for (const panel of panels())
+  for (const widget of panel.widgets())
+    if (widget.type == "org.kde.plasma.systemtray") {
+      widget.currentConfigGroup = ["General"];
+      for (const key of ["extraItems", "shownItems"]) {
+        let items = widget.readConfig(key);
+        if (!Array.isArray(items)) items = items ? String(items).split(",") : [];
+        if (items.indexOf("lili") < 0) items.push("lili");
+        widget.writeConfig(key, items);
+      }
+    }
+"""
+
+
+def setup():
+    """What a package can't do as root: this user's service, tray, skill and window icons."""
+    for agent_dir in (Path.home() / ".claude", Path.home() / ".codex"):
+        if not agent_dir.is_dir():
+            continue
+        target = agent_dir / "skills" / "lili-diagnose-crash"
+        target.parent.mkdir(exist_ok=True)
+        # A real directory at that path would get the link created inside it.
+        if target.is_dir() and not target.is_symlink():
+            target.rename(target.with_name(f"{target.name}.bak-{datetime.now():%Y%m%d%H%M%S}"))
+        target.unlink(missing_ok=True)
+        target.symlink_to(SKILL_FILE.parent)
+        print(_("skill: linked for {agent}").format(agent=agent_dir.name.lstrip(".")))
+    point_icon(load_config()["avatar"])
+    run = lambda *cmd: subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+    run("systemctl", "--user", "daemon-reload")
+    if run("systemctl", "--user", "enable", "lili-crash.service") and run("systemctl", "--user", "restart", "lili-crash.service"):
+        print(_("service: running, and it starts with every login"))
+    else:
+        print(_("service: couldn't start it; try: systemctl --user enable --now lili-crash"))
+    if shutil.which("kwriteconfig6"):
+        # Wayland taskbars pick a window's icon from its owner's .desktop file, and Lili's
+        # windows belong to plasmashell or plasmawindowed. This KWin rule claims them.
+        rule = ["kwriteconfig6", "--file", "kwinrulesrc", "--group", "lili-crash"]
+        for key, value in (("Description", "Lili Crash windows"), ("title", "Lili Crash"), ("titlematch", "2"),
+                           ("desktopfile", "lili-crash"), ("desktopfilerule", "2")):
+            run(*rule, "--key", key, value)
+        rules = subprocess.run(["kreadconfig6", "--file", "kwinrulesrc", "--group", "General", "--key", "rules"],
+                               capture_output=True, text=True).stdout.strip()
+        if "lili-crash" not in rules.split(","):
+            rules = ",".join(filter(None, [rules, "lili-crash"]))
+            run("kwriteconfig6", "--file", "kwinrulesrc", "--group", "General", "--key", "rules", rules)
+            run("kwriteconfig6", "--file", "kwinrulesrc", "--group", "General", "--key", "count", str(len(rules.split(","))))
+        run("dbus-send", "--session", "--type=method_call", "--dest=org.kde.KWin", "/KWin", "org.kde.KWin.reconfigure")
+    if shutil.which("qdbus6") and run("qdbus6", "org.kde.plasmashell", "/PlasmaShell",
+                                      "org.kde.PlasmaShell.evaluateScript", TRAY_SCRIPT):
+        print(_("tray: Lili is next to the clock"))
+    else:
+        print(_("tray: right-click the system tray, choose Configure System Tray, open Entries and set Lili Crash to Always show"))
 
 
 def main(args):
@@ -1052,6 +1120,8 @@ def main(args):
         watch()
     elif command == "skill" and len(rest) == 1:
         skill(rest[0])
+    elif command == "setup" and not rest:
+        setup()
     elif command == "install" and len(rest) == 1:
         install(rest[0])
     elif command == "diagnose" and rest and all(r.isdigit() or is_boot(r) or is_steam(r) or is_launch(r) for r in rest):

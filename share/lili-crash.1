@@ -1,0 +1,55 @@
+.TH LILI-CRASH 1 "September 2026" "lili-crash" "User Commands"
+.SH NAME
+lili-crash \- find out why a program closed by itself
+.SH SYNOPSIS
+.B lili-crash
+.I command
+.RI [ arguments ]
+.SH DESCRIPTION
+Lili watches for programs that crash (systemd-coredump), a computer that froze, a Steam
+game that closes right after starting, and an app that exits with an error as it opens.
+She notifies each one and, with one click, opens an AI coding assistant (Claude Code,
+Codex and others) in a terminal to find out why.
+.SH COMMANDS
+.TP
+.B list
+Programs that crashed, newest first, as JSON.
+.TP
+.BI mark " binary state" " \fR[\fIsummary\fR]"
+Set a program to new, diagnosed, resolved or ignored.
+.TP
+.BI notify " id"
+Show the notification for one crash (a PID), freeze (boot), Steam game (steam-...) or
+app that didn't open (launch-...).
+.TP
+.B watch
+Notify every new event; the lili-crash user service runs this.
+.TP
+.B open
+Lili's window: AI usage and crash history.
+.TP
+.BI diagnose " id" " \fR...\fR"
+Open the AI in a terminal to find out why.
+.TP
+.BR config " [\fBset\fR \fIkey value\fR]"
+Settings shared with the tray widget.
+.TP
+.BI install " agent"
+Run an AI assistant's official installer in a terminal.
+.TP
+.BR skill " \fBpath\fR|\fBview\fR|\fBedit\fR|\fBreset\fR"
+This distribution's notes for the diagnosis skill.
+.TP
+.B setup
+Per-user setup after installing a package: turns the service on, puts Lili in the
+system tray and links the diagnosis skill for Claude and Codex.
+.SH FILES
+.TP
+.I ~/.config/lili/
+Settings and your edited distribution notes.
+.TP
+.I ~/.local/state/lili/
+What you marked as diagnosed, resolved or ignored.
+.SH SEE ALSO
+.BR coredumpctl (1),
+https://github.com/cryptoconspiracy/lili-crash

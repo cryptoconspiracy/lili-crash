@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: lili-crash\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-25 13:55-0300\n"
+"POT-Creation-Date: 2026-09-28 22:23-0300\n"
 "PO-Revision-Date: 2026-09-25 12:00-0300\n"
 "Last-Translator: Dan B\n"
 "Language-Team: Portuguese (Brazil)\n"
@@ -12,200 +12,224 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: bin/lili-crash:51
+#: bin/lili-crash:61
 msgid "Touched memory it didn't own"
 msgstr "Acessou memória que não era dele"
 
-#: bin/lili-crash:52
+#: bin/lili-crash:62
 msgid "Gave up on an internal error"
 msgstr "Desistiu por um erro interno"
 
-#: bin/lili-crash:53
+#: bin/lili-crash:63
 msgid "Read memory that was no longer there"
 msgstr "Leu memória que já não existia"
 
-#: bin/lili-crash:54
+#: bin/lili-crash:64
 msgid "Hit a math error, like dividing by zero"
 msgstr "Errou uma conta, como dividir por zero"
 
-#: bin/lili-crash:55
+#: bin/lili-crash:65
 msgid "Tried to run an invalid instruction"
 msgstr "Tentou executar uma instrução inválida"
 
-#: bin/lili-crash:56
+#: bin/lili-crash:66
 msgid "Stopped at a debugger trap"
 msgstr "Parou num ponto de depuração"
 
-#: bin/lili-crash:57
+#: bin/lili-crash:67
 msgid "Made a forbidden system call"
 msgstr "Fez uma chamada de sistema proibida"
 
-#: bin/lili-crash:58
+#: bin/lili-crash:68
 #, python-brace-format
 msgid "Got signal {signal}"
 msgstr "Recebeu o sinal {signal}"
 
-#: bin/lili-crash:65
+#: bin/lili-crash:75
 #, python-brace-format
 msgid "today at {time}"
 msgstr "hoje às {time}"
 
-#: bin/lili-crash:67
+#: bin/lili-crash:77
 #, python-brace-format
 msgid "yesterday at {time}"
 msgstr "ontem às {time}"
 
-#: bin/lili-crash:69
+#: bin/lili-crash:79
 #, python-brace-format
 msgid "on {date} at {time}"
 msgstr "em {date} às {time}"
 
-#: bin/lili-crash:69
+#: bin/lili-crash:79
 msgid "%m/%d"
 msgstr "%d/%m"
 
-#: bin/lili-crash:180
+#: bin/lili-crash:192
 #, python-brace-format
 msgid "The graphics driver ({driver}) stopped responding"
 msgstr "O driver de vídeo ({driver}) parou de responder"
 
-#: bin/lili-crash:181
+#: bin/lili-crash:193
 msgid "The kernel crashed"
 msgstr "O kernel quebrou"
 
-#: bin/lili-crash:182
+#: bin/lili-crash:194
 msgid "The kernel got stuck"
 msgstr "O kernel ficou preso"
 
-#: bin/lili-crash:183
+#: bin/lili-crash:195
 msgid "It ran out of memory"
 msgstr "A memória acabou"
 
-#: bin/lili-crash:184
+#: bin/lili-crash:196
 msgid "Nothing was logged before it stopped"
 msgstr "Nada foi registrado antes de parar"
 
-#: bin/lili-crash
+#: bin/lili-crash:369
 #, python-brace-format
 msgid "No early exit recorded for {id}"
 msgstr "Nenhum fechamento precoce registrado para {id}"
 
-#: bin/lili-crash
-#, python-brace-format
-msgid "Closed by itself {seconds} seconds after starting"
-msgstr "Fechou sozinho {seconds} segundos depois de abrir"
-
-#: bin/lili-crash
-#, python-brace-format
-msgid "{name} closed by itself"
-msgstr "{name} fechou sozinho"
-
-#: bin/lili-crash
-#, python-brace-format
-msgid "{reason}, {when}."
-msgstr "{reason}, {when}."
-
-#: bin/lili-crash
-#, python-brace-format
-msgid "It ran with {tool}."
-msgstr "Rodou com o {tool}."
-
-#: bin/lili-crash
+#: bin/lili-crash:466
 #, python-brace-format
 msgid "No failed start recorded for {id}"
 msgstr "Nenhuma abertura com erro registrada para {id}"
 
-#: bin/lili-crash
+#: bin/lili-crash:477
 msgid "Exited with an error as soon as it started"
 msgstr "Saiu com erro assim que abriu"
 
-#: bin/lili-crash
+#: bin/lili-crash:478
 #, python-brace-format
 msgid "Exited with an error {seconds} seconds after starting"
 msgstr "Saiu com erro {seconds} segundos depois de abrir"
 
-#: bin/lili-crash
-#, python-brace-format
-msgid "{name} didn't open"
-msgstr "{name} não abriu"
-
-#: bin/lili-crash:263
+#: bin/lili-crash:490
 #, python-brace-format
 msgid "Unknown state: {state}. Use one of: {states}"
 msgstr "Estado desconhecido: {state}. Use um destes: {states}"
 
-#: bin/lili-crash:303 bin/lili-crash:334 bin/lili-crash:428
+#: bin/lili-crash:530 bin/lili-crash:609 bin/lili-crash:770
 msgid "The computer froze"
 msgstr "O computador travou"
 
-#: bin/lili-crash:309
+#: bin/lili-crash:536
 msgid "no log"
 msgstr "sem registro"
 
-#: bin/lili-crash:321
+#: bin/lili-crash:588
+#, python-brace-format
+msgid "Closed by itself {seconds} seconds after starting"
+msgstr "Fechou sozinho {seconds} segundos depois de abrir"
+
+#: bin/lili-crash:596
 #, python-brace-format
 msgid "No core dump with PID {pid}"
 msgstr "Nenhum core dump com o PID {pid}"
 
-#: bin/lili-crash:328
+#: bin/lili-crash:603
 #, python-brace-format
 msgid "No freeze recorded for boot {boot}"
 msgstr "Nenhum travamento registrado no boot {boot}"
 
-#: bin/lili-crash:335
+#: bin/lili-crash:610
 #, python-brace-format
 msgid "{reason}, {when}. It had to be forced off."
 msgstr "{reason}, {when}. Foi preciso desligar na força."
 
-#: bin/lili-crash:339
+#: bin/lili-crash:616
+#, python-brace-format
+msgid "{name} closed by itself"
+msgstr "{name} fechou sozinho"
+
+#: bin/lili-crash:617 bin/lili-crash:624
+#, python-brace-format
+msgid "{reason}, {when}."
+msgstr "{reason}, {when}."
+
+#: bin/lili-crash:619
+#, python-brace-format
+msgid "It ran with {tool}."
+msgstr "Rodou com o {tool}."
+
+#: bin/lili-crash:623
+#, python-brace-format
+msgid "{name} didn't open"
+msgstr "{name} não abriu"
+
+#: bin/lili-crash:631
 #, python-brace-format
 msgid "{name} crashed"
 msgstr "{name} fechou sozinho"
 
-#: bin/lili-crash:340
+#: bin/lili-crash:632
 #, python-brace-format
 msgid "{reason} ({signal}), {when}."
 msgstr "{reason} ({signal}), {when}."
 
-#: bin/lili-crash:345
+#: bin/lili-crash:637
 msgid "Find out why"
 msgstr "Descobrir o porquê"
 
-#: bin/lili-crash:440 bin/lili-crash:443
+#: bin/lili-crash:808 bin/lili-crash:811 bin/lili-crash:814 bin/lili-crash:817
 #, python-brace-format
 msgid "Diagnosis: {name}"
 msgstr "Diagnóstico: {name}"
 
-#: bin/lili-crash:447
+#: bin/lili-crash:821
 #, python-brace-format
 msgid "Diagnosis: {count} programs"
 msgstr "Diagnóstico: {count} programas"
 
-#: bin/lili-crash:458
+#: bin/lili-crash:832
 #, python-brace-format
 msgid "{agent} isn't installed: {url}"
 msgstr "{agent} não está instalado: {url}"
 
-#: bin/lili-crash:476
+#: bin/lili-crash:850
 #, python-brace-format
 msgid "Unknown agent: {agent}"
 msgstr "Agente desconhecido: {agent}"
 
-#: bin/lili-crash:477
+#: bin/lili-crash:851
 msgid "Done. You can close this window."
 msgstr "Pronto. Pode fechar esta janela."
 
-#: bin/lili-crash:478
+#: bin/lili-crash:852
 #, python-brace-format
 msgid "Installing {agent}"
 msgstr "Instalando {agent}"
 
-#: bin/lili-crash:617
+#: bin/lili-crash:991
 #, python-brace-format
 msgid "No supported terminal found: {terminals}"
 msgstr "Nenhum terminal compatível encontrado: {terminals}"
 
-#: bin/lili-crash:635
+#: bin/lili-crash:1009
 #, python-brace-format
 msgid "Unknown setting: {key}. Use one of: {keys}"
 msgstr "Configuração desconhecida: {key}. Use uma destas: {keys}"
+
+#: bin/lili-crash:1069
+#, python-brace-format
+msgid "skill: linked for {agent}"
+msgstr "skill: ligado para o {agent}"
+
+#: bin/lili-crash:1074
+msgid "service: running, and it starts with every login"
+msgstr "serviço: rodando, e ele inicia a cada login"
+
+#: bin/lili-crash:1076
+msgid ""
+"service: couldn't start it; try: systemctl --user enable --now lili-crash"
+msgstr "serviço: não consegui iniciar; tente: systemctl --user enable --now lili-crash"
+
+#: bin/lili-crash:1093
+msgid "tray: Lili is next to the clock"
+msgstr "bandeja: a Lili está ao lado do relógio"
+
+#: bin/lili-crash:1095
+msgid ""
+"tray: right-click the system tray, choose Configure System Tray, open "
+"Entries and set Lili Crash to Always show"
+msgstr "bandeja: clique com o botão direito na bandeja do sistema, escolha Configurar, abra Entradas e ponha o Lili Crash em Sempre mostrar"

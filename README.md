@@ -117,6 +117,49 @@ Right-click Lili and pick *Configure*.
 
 ## Install
 
+### From packages
+
+Signed repositories on the openSUSE Build Service. After installing, run
+`lili-crash setup` once as your own user (not root): it turns the notification service
+on, puts Lili next to your clock and links the diagnosis for Claude Code and Codex.
+
+**Fedora 43 and 44**
+
+```bash
+sudo dnf config-manager addrepo --from-repofile=https://download.opensuse.org/repositories/home:/cryptoconspiracy/Fedora_$(rpm -E %fedora)/home:cryptoconspiracy.repo
+sudo dnf install lili-crash
+```
+
+**openSUSE Tumbleweed**
+
+```bash
+sudo zypper addrepo -f https://download.opensuse.org/repositories/home:/cryptoconspiracy/openSUSE_Tumbleweed/home:cryptoconspiracy.repo
+sudo zypper install lili-crash
+```
+
+**Debian 13, Ubuntu 25.10 and 26.04**: set `repo` to `Debian_13`, `xUbuntu_25.10` or `xUbuntu_26.04`.
+
+```bash
+repo=Debian_13
+curl -fsSL https://download.opensuse.org/repositories/home:/cryptoconspiracy/$repo/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/cryptoconspiracy.gpg >/dev/null
+echo "deb https://download.opensuse.org/repositories/home:/cryptoconspiracy/$repo/ /" | sudo tee /etc/apt/sources.list.d/cryptoconspiracy.list
+sudo apt update && sudo apt install lili-crash
+```
+
+**Arch and Arch-based**: the AUR package follows when AUR registration reopens; until then, the signed repository:
+
+```bash
+curl -fsSL https://download.opensuse.org/repositories/home:/cryptoconspiracy/Fedora_44/repodata/repomd.xml.key | sudo pacman-key --add -
+sudo pacman-key --lsign-key 72E3A26E8377B7E2BFB5E9F1ADD09EAE97167CA4
+printf '[home_cryptoconspiracy_Arch]\nServer = https://download.opensuse.org/repositories/home:/cryptoconspiracy/Arch/$arch\n' | sudo tee -a /etc/pacman.conf
+sudo pacman -Sy lili-crash
+```
+
+The same repository carries [Alien Thunder](https://github.com/cryptoconspiracy/alien-thunder);
+if you already added it for that, skip straight to the install line.
+
+### From source
+
 Open a terminal and paste:
 
 ```bash
@@ -130,24 +173,37 @@ example `systemd-coredump` on Ubuntu and Debian), it tells you exactly which pac
 and asks before installing them; that's the only moment it may ask for your password.
 Everything else stays in your own folder.
 
-That's all. Lili appears next to your clock right away, and from then on she starts
-by herself every time you log in: nothing to open, nothing to remember. You can also
-type **Lili** in your application menu to open her panel as a window.
+That's all, either way. Lili appears next to your clock right away, and from then on
+she starts by herself every time you log in: nothing to open, nothing to remember. You
+can also type **Lili** in your application menu to open her panel as a window.
 
 You'll also need an account with one of the AI assistants above (for example a
 Claude or ChatGPT subscription).
 
+### Packagers
+
+`make && make DESTDIR=... install` puts everything under `/usr`: the program, the
+diagnosis skill, the user service, the panel widget and the icons. Each user then runs
+`lili-crash setup` once.
+
+### Releasing (maintainers)
+
+`make release VERSION=1.2.3` bumps the version everywhere, tags it, publishes the GitHub
+release with the widget, updates the AUR recipe and the openSUSE Build Service packages,
+and waits for the builds. `DRY_RUN=1` does it all in a throwaway clone without publishing.
+
 ### Updating
 
-In the folder you cloned:
+From packages, your system updates Lili with everything else. From source, in the
+folder you cloned:
 
 ```bash
 git pull
 ./install.sh
 ```
 
-The notifications update right away. Lili's panel next to the clock is loaded when
-you log in, so if it doesn't show what's new, log out and back in.
+The notifications update right away, and the installer reloads the panel so Lili
+next to the clock shows what's new too.
 
 ## Will it work on my computer?
 
@@ -239,7 +295,7 @@ in clean Ubuntu, Debian, Fedora, openSUSE and Arch containers (needs podman).
 
 ## What's new
 
-### Next: apps that won't open
+### 0.4: apps that won't open
 
 You double click an AppImage and nothing happens. It didn't crash: it printed
 "AppImages require FUSE to run" to nowhere and exited. Now an app the desktop started
@@ -248,7 +304,7 @@ open and shows the first line it printed, and *Find out why* gives the AI everyt
 it printed. This works wherever the desktop starts apps as systemd services, which
 Plasma does.
 
-### Also next: Steam games that close by themselves
+### Also in 0.4: Steam games that close by themselves, and packages
 
 A game that gives up right after starting (Proton can't reach Steam, a launcher
 fails) exits cleanly, so there was no crash for Lili to see. Now a Steam game that
@@ -256,6 +312,9 @@ stops less than two minutes after it started counts: the notification says how l
 it lasted and which Proton ran it, and *Find out why* gives the AI the launch command
 and what Steam logged in that window. Ignoring a game works the same as ignoring a
 program.
+
+Lili is also a package now, for Fedora, openSUSE, Debian, Ubuntu and Arch (see
+[Install](#install)), and she shows up in GNOME Software and KDE Discover once installed.
 
 ### 0.3: when the whole computer freezes
 

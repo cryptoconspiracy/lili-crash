@@ -1,0 +1,30 @@
+# Maintainer: Dan B <unknown@cryptoconspiracy.io>
+pkgname=lili-crash
+pkgver=0.3.0
+pkgrel=1
+pkgdesc="Find out why a program closed by itself: crash notifications with a one-click AI diagnosis"
+arch=('any')
+url="https://github.com/cryptoconspiracy/lili-crash"
+license=('MIT')
+depends=('python' 'systemd' 'libnotify' 'xdg-utils')
+makedepends=('gettext')
+optdepends=('plasma-workspace: the tray icon with AI usage and crash history'
+            'konsole: a terminal for the diagnosis')
+install=lili-crash.install
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "$pkgname-$pkgver"
+  make locales
+}
+
+check() {
+  cd "$pkgname-$pkgver"
+  python3 -m py_compile bin/lili-crash
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  make PREFIX=/usr DESTDIR="$pkgdir" install
+}

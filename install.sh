@@ -131,29 +131,11 @@ for img in "$repo"/plasma/lili/contents/images/lili*.png; do
   cp "$img" "$icons/lili-crash-$(basename "$img")"
 done
 sed "s|^Exec=lili-crash|Exec=$bin/lili-crash|" "$repo/share/lili-crash.desktop" >"$data/applications/lili-crash.desktop"
-# Points the lili-crash icon at the avatar picked in the settings.
-"$bin/lili-crash" config set avatar "$("$bin/lili-crash" config | python3 -c 'import json,sys; print(json.load(sys.stdin)["avatar"])')"
-
-for agent_dir in "$HOME/.claude" "$HOME/.codex"; do
-  [[ -d $agent_dir ]] || continue
-  mkdir -p "$agent_dir/skills"
-  target=$agent_dir/skills/lili-diagnose-crash
-  # A real directory at that path would get the link created inside it.
-  if [[ -d $target && ! -L $target ]]; then
-    mv "$target" "$target.bak-$(date +%Y%m%d%H%M%S)"
-  fi
-  ln -sfn "$repo/skill/lili-diagnose-crash" "$target"
-done
 
 mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 cp "$repo/share/lili-crash.service" "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/"
-if systemctl --user daemon-reload 2>/dev/null; then
-  systemctl --user enable lili-crash.service >/dev/null 2>&1
-  systemctl --user restart lili-crash.service
-else
-  service_note="
+systemctl --user daemon-reload 2>/dev/null || service_note="
 The notification service starts with your next login (no user session to start it now)."
-fi
 
 if command -v kpackagetool6 >/dev/null; then
   widget=$repo/plasma/lili
@@ -166,52 +148,23 @@ if command -v kpackagetool6 >/dev/null; then
   if [[ -d $installed ]]; then
     # kpackagetool6 --upgrade removes the widget before reinstalling it, and the
     # system tray drops anything that disappears, even for a moment.
+    changed=false
+    diff -rq "$widget" "$installed" >/dev/null 2>&1 || changed=true
     cp -rT "$widget" "$installed"
+    # A running plasmashell keeps the QML it already loaded; new files only take
+    # effect after it restarts. The panel blinks for a second or two.
+    if $changed && systemctl --user is-active -q plasma-plasmashell.service; then
+      systemctl --user restart plasma-plasmashell.service
+    fi
   else
     kpackagetool6 --type Plasma/Applet --install "$widget"
   fi
-  # Wayland taskbars pick a window's icon from its owner's .desktop file, and Lili's
-  # windows belong to plasmashell or plasmawindowed. This KWin rule claims them.
-  if command -v kwriteconfig6 >/dev/null; then
-    rule=(kwriteconfig6 --file kwinrulesrc --group lili-crash)
-    "${rule[@]}" --key Description "Lili Crash windows"
-    "${rule[@]}" --key title "Lili Crash"
-    "${rule[@]}" --key titlematch 2
-    "${rule[@]}" --key desktopfile lili-crash
-    "${rule[@]}" --key desktopfilerule 2
-    rules=$(kreadconfig6 --file kwinrulesrc --group General --key rules)
-    if [[ ,$rules, != *,lili-crash,* ]]; then
-      rules=${rules:+$rules,}lili-crash
-      kwriteconfig6 --file kwinrulesrc --group General --key rules "$rules"
-      kwriteconfig6 --file kwinrulesrc --group General --key count "$(tr ',' '\n' <<<"$rules" | grep -c .)"
-    fi
-    dbus-send --session --type=method_call --dest=org.kde.KWin /KWin org.kde.KWin.reconfigure 2>/dev/null || true
-  fi
-  # Puts Lili in every system tray, always shown. Plasma saves it with the panel,
-  # so she comes back on every login without anyone opening her.
-  tray_script='
-    for (const panel of panels())
-      for (const widget of panel.widgets())
-        if (widget.type == "org.kde.plasma.systemtray") {
-          widget.currentConfigGroup = ["General"];
-          for (const key of ["extraItems", "shownItems"]) {
-            let items = widget.readConfig(key);
-            if (!Array.isArray(items)) items = items ? String(items).split(",") : [];
-            if (items.indexOf("lili") < 0) items.push("lili");
-            widget.writeConfig(key, items);
-          }
-        }'
-  if command -v qdbus6 >/dev/null &&
-    qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "$tray_script" >/dev/null 2>&1; then
-    widget_note="
-Lili is in your system tray, next to the clock."
-  else
-    widget_note="
-To see Lili in the tray: right-click the system tray, Configure System Tray >
-Entries, and set Lili Crash to Always shown."
-  fi
 fi
 
+# The service, the tray, the skill for Claude and Codex and the window icons are per
+# user, and a distribution package can't set them up; the same command does it for both.
+"$bin/lili-crash" setup || true
+
 cat <<EOF
-Lili Crash installed. Try it on a past crash: lili-crash list${service_note:-}${widget_note:-}
+Lili Crash installed. Try it on a past crash: lili-crash list${service_note:-}
 EOF

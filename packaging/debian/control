@@ -1,0 +1,27 @@
+Source: lili-crash
+Section: utils
+Priority: optional
+Maintainer: Dan B <unknown@cryptoconspiracy.io>
+Build-Depends: debhelper-compat (= 13), gettext, python3
+Standards-Version: 4.7.2
+Homepage: https://github.com/cryptoconspiracy/lili-crash
+Vcs-Browser: https://github.com/cryptoconspiracy/lili-crash
+Vcs-Git: https://github.com/cryptoconspiracy/lili-crash.git
+Rules-Requires-Root: no
+
+Package: lili-crash
+Architecture: all
+Depends: ${misc:Depends},
+ python3,
+ systemd,
+ libnotify-bin,
+ xdg-utils
+Recommends: systemd-coredump, plasma-workspace
+Suggests: konsole
+Description: crash notifications with a one-click AI diagnosis
+ When a program crashes, Lili Crash lets you know, and with one click asks an
+ AI coding assistant such as Claude Code or Codex to investigate and explain
+ what happened. It also notices a computer that froze, a Steam game that
+ closes right after starting and an app that won't open. On KDE Plasma a tray
+ icon shows the crash history and the assistants' usage limits. After
+ installing, each user runs "lili-crash setup" once.
