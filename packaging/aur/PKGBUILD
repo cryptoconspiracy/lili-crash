@@ -1,6 +1,6 @@
 # Maintainer: Dan B <unknown@cryptoconspiracy.io>
 pkgname=lili-crash
-pkgver=0.3.0
+pkgver=0.4.0
 pkgrel=1
 pkgdesc="Find out why a program closed by itself: crash notifications with a one-click AI diagnosis"
 arch=('any')

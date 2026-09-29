@@ -1,5 +1,5 @@
 Name:           lili-crash
-Version:        0.3.0
+Version:        0.4.0
 Release:        1%{?dist}
 Summary:        Find out why a program closed by itself, with a one-click AI diagnosis
 License:        MIT
@@ -60,3 +60,11 @@ rm -f %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 %{_datadir}/plasma/plasmoids/lili/
 
 %changelog
+* Mon Sep 28 2026 Dan B <unknown@cryptoconspiracy.io> - 0.4.0-1
+- The first Debian package is the next release, not 0.3
+- Packages for Fedora, openSUSE, Debian, Ubuntu and Arch, and lili-crash setup
+- Lili notices an app that won't open
+- EVM donation address next to Bitcoin, in the settings and the README
+- Support page in the settings and the README: Bitcoin QR code and a copy button
+- Lili notices a Steam game that closes by itself
+

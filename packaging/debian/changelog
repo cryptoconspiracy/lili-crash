@@ -1,0 +1,11 @@
+lili-crash (0.4.0-1) unstable; urgency=medium
+
+  * The first Debian package is the next release, not 0.3
+  * Packages for Fedora, openSUSE, Debian, Ubuntu and Arch, and lili-crash setup
+  * Lili notices an app that won't open
+  * EVM donation address next to Bitcoin, in the settings and the README
+  * Support page in the settings and the README: Bitcoin QR code and a copy button
+  * Lili notices a Steam game that closes by itself
+
+ -- Dan B <unknown@cryptoconspiracy.io>  Mon, 28 Sep 2026 22:35:48 -0300
+

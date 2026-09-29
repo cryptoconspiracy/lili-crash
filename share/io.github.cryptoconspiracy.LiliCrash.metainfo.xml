@@ -63,6 +63,18 @@
   </supports>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.4.0" date="2026-09-28">
+      <description>
+        <ul>
+          <li>The first Debian package is the next release, not 0.3</li>
+          <li>Packages for Fedora, openSUSE, Debian, Ubuntu and Arch, and lili-crash setup</li>
+          <li>Lili notices an app that won't open</li>
+          <li>EVM donation address next to Bitcoin, in the settings and the README</li>
+          <li>Support page in the settings and the README: Bitcoin QR code and a copy button</li>
+          <li>Lili notices a Steam game that closes by itself</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.3" date="2026-09-25">
       <description>
         <p>Lili notices when the whole computer froze.</p>
