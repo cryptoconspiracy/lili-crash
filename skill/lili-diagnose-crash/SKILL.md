@@ -9,7 +9,9 @@ description: >
   itself right after starting, from Steam's and Proton's logs. Triggers: crash,
   crashed, segfault, SIGSEGV, SIGABRT, core dump, coredumpctl, "why did X close",
   "X keeps crashing", freeze, froze, black screen, soft lockup, "had to hold the power
-  button", Steam game closes, Proton, "couldn't connect to Steam".
+  button", Steam game closes, Proton, "couldn't connect to Steam". Also an app that
+  wouldn't open at all, from what it printed before exiting with an error: "nothing
+  happens when I click it", AppImage, "doesn't open".
 ---
 
 # Diagnosing a crash
@@ -152,6 +154,31 @@ launch command.
 
 Its state lives under the key `steam:<appid>`, so record it with
 `lili-crash mark 'steam:<appid>' diagnosed '<the cause in one sentence>'`.
+
+## When an app wouldn't open
+
+Lili flags an app the desktop started (menu, a double click in the file manager,
+KRunner) that exited with an error less than 20 seconds later. There's no core dump
+and no window: it gave up before it drew one. Plasma runs each launch as a user
+service, so the prompt gives that service and what the app printed, which is usually
+the whole answer.
+
+- **Read what it printed first.** A missing library (`error loading libfoo.so.N`,
+  `cannot open shared object file`) names the package to install; look it up with the
+  distro's file search (`pacman -F`, `dnf provides`, `apt-file search`) rather than
+  guessing the package name. `journalctl --user _SYSTEMD_USER_UNIT=<service>` shows
+  the full output if the prompt cut it short.
+- **AppImages** need FUSE 2 (`libfuse.so.2`) to mount themselves, and many distros
+  ship only FUSE 3. The fix is the distro's FUSE 2 package; it installs beside FUSE 3.
+  `--appimage-extract-and-run` proves the app itself works without it.
+- **Run it by hand** from a terminal when the output isn't enough: the same command
+  usually prints the same error, and a flag like `--verbose` may add more. If your
+  own shell carries `ELECTRON_RUN_AS_NODE` (editors built on Electron set it), clear
+  it first, or an Electron app will act as plain Node and exit quietly.
+- **Several attempts** of the same app with the same output are one problem, not many.
+
+Its state lives under the key `launch:<app>` (the .desktop id, or the file's path), so
+record it with `lili-crash mark 'launch:<app>' diagnosed '<the cause in one sentence>'`.
 
 ## Report
 

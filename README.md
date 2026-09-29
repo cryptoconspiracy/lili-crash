@@ -30,6 +30,11 @@ minutes after you started it, usually after a message like "couldn't connect to
 Steam", leaves no crash record, only Steam's own logs. Lili notices, tells you which
 Proton it ran with, and hands the AI the lines Steam logged in that window.
 
+And she notices an **app that won't open**: you click it, nothing appears, and there's
+no crash either, because it gave up with an error before drawing a window (an
+AppImage missing FUSE, a library that isn't installed). Lili tells you it didn't open
+and shows the first thing it complained about.
+
 You don't need to know anything about Linux to use her.
 
 ## How it works, step by step
@@ -207,10 +212,10 @@ Everything Lili does is also a command:
 | Command | What it does |
 |---|---|
 | `lili-crash list` | Programs that crashed, newest first, as JSON |
-| `lili-crash diagnose <pid\|boot\|steam-id>...` | Open the AI on one or more crashes, freezes or Steam games that closed early |
+| `lili-crash diagnose <pid\|boot\|steam-id\|launch-id>...` | Open the AI on one or more crashes, freezes, Steam games that closed early, or apps that didn't open |
 | `lili-crash mark <binary> <state> [summary]` | Set a program to `new`, `diagnosed`, `resolved` or `ignored` |
-| `lili-crash notify <pid\|boot\|steam-id>` | Show the notification for one of them |
-| `lili-crash watch` | Notify every new crash, every Steam game that closes within two minutes, and a freeze from the boot before (the `lili-crash` user service runs this) |
+| `lili-crash notify <pid\|boot\|steam-id\|launch-id>` | Show the notification for one of them |
+| `lili-crash watch` | Notify every new crash, every Steam game that closes within two minutes, every app that exits with an error within 20 seconds of opening, and a freeze from the boot before (the `lili-crash` user service runs this) |
 | `lili-crash install <agent>` | Run an AI's official installer in a terminal |
 | `lili-crash skill <path\|view\|edit\|reset>` | The notes for your distribution |
 | `lili-crash config [set <key> <value>]` | Settings shared with the tray icon |
@@ -223,12 +228,27 @@ A Steam game is known by `steam-<appid>-<start>` and its state lives under
 `steam:<appid>`. Lili reads the runs from Steam's `logs/content_log.txt` (native,
 `~/.steam/steam` or the Flatpak), so the history lasts as long as Steam keeps that log.
 
+An app that didn't open is known by `launch-<invocation id>` and its state lives under
+`launch:<app>`, the .desktop id or the path of the file that was opened. Lili reads it
+from the user journal: Plasma starts every launch as a user service
+(`app-<app>@<id>.service`), and systemd records when it started, that it failed with
+`exit-code`, and what it printed. Apps started at login (`@autostart`) don't count.
+
 To check the installer on other distributions, `tests/install-in-containers.sh` runs it
 in clean Ubuntu, Debian, Fedora, openSUSE and Arch containers (needs podman).
 
 ## What's new
 
-### Next: Steam games that close by themselves
+### Next: apps that won't open
+
+You double click an AppImage and nothing happens. It didn't crash: it printed
+"AppImages require FUSE to run" to nowhere and exited. Now an app the desktop started
+that exits with an error within 20 seconds counts: the notification says it didn't
+open and shows the first line it printed, and *Find out why* gives the AI everything
+it printed. This works wherever the desktop starts apps as systemd services, which
+Plasma does.
+
+### Also next: Steam games that close by themselves
 
 A game that gives up right after starting (Proton can't reach Steam, a launcher
 fails) exits cleanly, so there was no crash for Lili to see. Now a Steam game that

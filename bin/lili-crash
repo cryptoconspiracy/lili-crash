@@ -3,11 +3,13 @@
 
   lili-crash list                       programs that crashed, newest first, as JSON
   lili-crash mark <binary> <state> [summary]
-  lili-crash notify <pid|boot|steam-id> desktop notification for one crash, freeze or Steam game that closed early
+  lili-crash notify <pid|boot|steam-id|launch-id>  desktop notification for one crash, freeze, Steam game
+                                        that closed early, or app that exited with an error as it opened
   lili-crash watch                      notify every new crash, a Steam game that closes within 2 minutes,
-                                        and a freeze from the last boot (run by the lili-crash service)
+                                        an app that fails within 20 seconds of opening, and a freeze from
+                                        the last boot (run by the lili-crash service)
   lili-crash open                       Lili's window: usage and crash history
-  lili-crash diagnose <pid|boot|steam-id>...  open Claude in a terminal to find out why
+  lili-crash diagnose <pid|boot|steam-id|launch-id>...  open Claude in a terminal to find out why
   lili-crash config [set <key> <value>] settings shared with the tray widget
   lili-crash install <agent>            run the agent's official installer in a terminal
   lili-crash skill <path|view|edit|reset>  this distro's notes for the diagnosis skill
@@ -17,6 +19,7 @@ was saved. If the program crashes again afterwards, it is new again.
 """
 
 import configparser
+import functools
 import gettext
 import json
 import locale
@@ -96,14 +99,16 @@ def desktop_by_id(app_id):
     return None
 
 
+@functools.cache
+def desktop_entries():
+    # Parsing every .desktop file takes a tenth of a second; once per run is enough.
+    return [entry for d in data_dirs() for path in sorted((Path(d) / "applications").glob("*.desktop"))
+            if (entry := read_desktop(path))]
+
+
 def desktop_by_exec(base):
     pattern = re.compile(rf"^([^ ]*/)?{re.escape(base)}( |$)")
-    for d in data_dirs():
-        for path in sorted((Path(d) / "applications").glob("*.desktop")):
-            entry = read_desktop(path)
-            if entry and pattern.match(entry.get("Exec", "")):
-                return entry
-    return None
+    return next((entry for entry in desktop_entries() if pattern.match(entry.get("Exec", ""))), None)
 
 
 def localized(entry, key):
@@ -377,6 +382,97 @@ def steam_evidence(root, run):
     return (tool.group(1) if tool else ""), command, trouble
 
 
+# Plasma starts everything it opens (the menu, a double click in Dolphin, KRunner) as a
+# user service of its own, so an app that gives up before its window appears (an
+# AppImage without FUSE, a missing library) still leaves its output and systemd's
+# verdict in the user journal. A crash is left to its core dump; this is the error exit.
+UNIT_STARTED_MESSAGE_ID = "39f53479d3a045ac8e11786248231fbf"
+UNIT_FAILED_MESSAGE_ID = "d9b373ed55a64feb8242e02dbe79a49c"
+UNIT_EXITED_MESSAGE_ID = "98e322203f7a4ed290d09fe03c09fe15"
+APP_UNIT = re.compile(r"^app-(.+?)@([^.]+)\.service$")
+# Tighter than a game's two minutes: an app that shows its window and is then closed
+# with an error (a wizard cancelled after a minute exits 1) did open.
+LAUNCH_EXIT = 20
+
+
+def journal_json(*args):
+    for line in journal("--user", "-o", "json", *args).splitlines():
+        try:
+            yield json.loads(line)
+        except ValueError:
+            continue
+
+
+def unescape_unit(name):
+    return re.sub(rb"\\x([0-9a-f]{2})", lambda m: bytes([int(m.group(1), 16)]), name.encode()).decode(errors="replace")
+
+
+def launch_identity(app):
+    """A launch runs either a .desktop id or, for a file opened directly, its path."""
+    base = os.path.basename(app)
+    entry = desktop_by_exec(base) if app.startswith("/") else desktop_by_id(app)
+    if not entry:
+        return base, "application-x-executable"
+    return localized(entry, "Name") or base, entry.get("Icon") or "application-x-executable"
+
+
+def failed_launches():
+    failed = {}
+    for e in journal_json("--output-fields=USER_UNIT,USER_INVOCATION_ID",
+                          f"MESSAGE_ID={UNIT_FAILED_MESSAGE_ID}", "UNIT_RESULT=exit-code"):
+        match = APP_UNIT.match(e.get("USER_UNIT", ""))
+        # Login items fail on their own schedule; nobody clicked them and waited.
+        if not match or match.group(2) == "autostart" or not e.get("USER_INVOCATION_ID"):
+            continue
+        failed[e["USER_INVOCATION_ID"]] = {"unit": e["USER_UNIT"], "app": unescape_unit(match.group(1)),
+                                           "time": int(e["__REALTIME_TIMESTAMP"]) // 1_000_000}
+    if not failed:
+        return []
+    found = []
+    for e in journal_json("--output-fields=USER_INVOCATION_ID", f"MESSAGE_ID={UNIT_STARTED_MESSAGE_ID}",
+                          *(f"USER_INVOCATION_ID={i}" for i in failed)):
+        run = failed.get(e.get("USER_INVOCATION_ID"))
+        if run and "start" not in run:
+            run.update(id=launch_id(e["USER_INVOCATION_ID"]), start=int(e["__REALTIME_TIMESTAMP"]) // 1_000_000)
+            run["seconds"] = run["time"] - run["start"]
+            if run["seconds"] < LAUNCH_EXIT:
+                found.append(run)
+    if found:
+        for e in journal_json("--output-fields=USER_INVOCATION_ID,EXIT_STATUS", f"MESSAGE_ID={UNIT_EXITED_MESSAGE_ID}",
+                              *(f"USER_INVOCATION_ID={r['id'].removeprefix('launch-')}" for r in found)):
+            run = failed.get(e.get("USER_INVOCATION_ID"))
+            if run:
+                run["status"] = e.get("EXIT_STATUS", "")
+    return sorted(found, key=lambda r: r["time"])
+
+
+def launch_id(invocation):
+    return f"launch-{invocation}"
+
+
+def is_launch(target):
+    return bool(re.fullmatch(r"launch-[0-9a-f]{32}", target))
+
+
+def find_launch(target):
+    for run in failed_launches():
+        if run["id"] == target:
+            return run
+    sys.exit(_("No failed start recorded for {id}").format(id=target))
+
+
+def launch_output(run):
+    """What the app printed before it gave up."""
+    return [line for line in journal("--user", "-o", "cat", f"_SYSTEMD_USER_UNIT={run['unit']}").splitlines()
+            if line.strip()][:20]
+
+
+def launch_reason(seconds):
+    if seconds < 1:
+        return _("Exited with an error as soon as it started")
+    return _("Exited with an error {seconds} seconds after starting").format(seconds=seconds)
+
+
 def load_state():
     try:
         return json.loads(STATE_FILE.read_text())
@@ -458,6 +554,28 @@ def programs():
                      "reason": early_exit_reason(last["seconds"]), "when": when(last["time"])},
             "crashes": runs,
         })
+    apps = {}
+    for run in failed_launches():
+        apps.setdefault(run["app"], []).append(run)
+    for app, runs in apps.items():
+        key = f"launch:{app}"
+        state = saved.get(key, {})
+        fresh = [r for r in runs if r["time"] > state.get("until", 0)]
+        last = runs[-1]
+        name, icon = launch_identity(app)
+        status = last.get("status")
+        result.append({
+            "exe": key,
+            "name": name,
+            "icon": icon,
+            "state": "new" if fresh else state.get("state", "new"),
+            "summary": state.get("summary", ""),
+            "count": len(runs),
+            "fresh": len(fresh),
+            "last": {"id": last["id"], "signal": f"exit {status}" if status else "exit", "time": last["time"],
+                     "reason": launch_reason(last["seconds"]), "when": when(last["time"])},
+            "crashes": runs,
+        })
     return sorted(result, key=lambda p: p["last"]["time"], reverse=True)
 
 
@@ -494,6 +612,15 @@ def notify(target):
         text = _("{reason}, {when}.").format(reason=early_exit_reason(run["seconds"]), when=when(run["time"]))
         if tool:
             text += " " + _("It ran with {tool}.").format(tool=tool)
+    elif is_launch(target):
+        run = find_launch(target)
+        name, icon = launch_identity(run["app"])
+        title = _("{name} didn't open").format(name=name)
+        text = _("{reason}, {when}.").format(reason=launch_reason(run["seconds"]), when=when(run["time"]))
+        output = launch_output(run)
+        # The first line it printed is usually the whole story (a missing library).
+        if output:
+            text += "\n" + output[0][:160]
     else:
         program, crash = find(int(target))
         icon, title = program["icon"], _("{name} crashed").format(name=program["name"])
@@ -506,7 +633,7 @@ def notify(target):
     # "default" is a click on the notification body; Plasma doesn't draw it as a button.
     action = subprocess.run(
         ["notify-send", "--app-name=Lili Crash", f"--icon={icon}", "--hint=string:desktop-entry:lili-crash", "--hint=boolean:transient:true", "--urgency=normal", "--expire-time=0",
-         f"--action=default={button}", f"--action=diagnose={button}", title, text],
+         f"--action=default={button}", f"--action=diagnose={button}", "--", title, text],
         env=env, capture_output=True, text=True).stdout.strip()
     if action in ("default", "diagnose"):
         diagnose([target])
@@ -551,12 +678,42 @@ def watch_steam(root):
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+def watch_launches():
+    """Follows the user journal and notifies each app that failed right after starting."""
+    follow = subprocess.Popen(["journalctl", "--user", "-f", "-n", "0", "-o", "json",
+                               "--output-fields=USER_UNIT,USER_INVOCATION_ID,UNIT_RESULT",
+                               f"MESSAGE_ID={UNIT_FAILED_MESSAGE_ID}"], stdout=subprocess.PIPE, text=True)
+    last_seen = {}
+    for line in follow.stdout:
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue
+        match = APP_UNIT.match(e.get("USER_UNIT", ""))
+        invocation = e.get("USER_INVOCATION_ID", "")
+        if e.get("UNIT_RESULT") != "exit-code" or not match or match.group(2) == "autostart" or not invocation:
+            continue
+        app = unescape_unit(match.group(1))
+        if load_state().get(f"launch:{app}", {}).get("state") == "ignored":
+            continue
+        # Double clicking again and again on something that won't open is one problem.
+        if time.time() - last_seen.get(app, 0) < 60:
+            continue
+        run = next((r for r in failed_launches() if r["id"] == launch_id(invocation)), None)
+        if not run:
+            continue
+        last_seen[app] = time.time()
+        subprocess.Popen([sys.argv[0], "notify", run["id"]], start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 def watch():
     """Follows the journal and notifies each new crash of this user's programs."""
     notify_last_freeze()
     root = steam_root()
     if root:
         threading.Thread(target=watch_steam, args=(root,), daemon=True).start()
+    threading.Thread(target=watch_launches, daemon=True).start()
     last_seen = {}
     follow = subprocess.Popen(["journalctl", "-f", "-n", "0", "-o", "json", "--output-fields=COREDUMP_PID,COREDUMP_EXE,"
                                "COREDUMP_COMM,COREDUMP_UID", f"MESSAGE_ID={COREDUMP_MESSAGE_ID}"],
@@ -622,6 +779,18 @@ def diagnose(targets):
                          f"lines Lili matched in that window (key 'steam:{run['appid']}'):\n{seen}")
             names.append(name)
             continue
+        if is_launch(target):
+            run = find_launch(target)
+            name, _icon = launch_identity(run["app"])
+            status, output = run.get("status"), launch_output(run)
+            seen = "\n".join(f"    {line}" for line in output) or "    (it printed nothing)"
+            facts.append(f"- {name} ({run['app']}) was started from the desktop and exited with status "
+                         f"{status or 'unknown'} {run['seconds']} seconds later, at "
+                         f"{datetime.fromtimestamp(run['time']).strftime('%Y-%m-%d %H:%M:%S')}, with no core dump. "
+                         f"It ran as the user service {run['unit']}; what it printed "
+                         f"(key 'launch:{run['app']}'):\n{seen}")
+            names.append(name)
+            continue
         program, crash = find(int(target))
         stamp = datetime.fromtimestamp(crash["time"]).strftime("%Y-%m-%d %H:%M:%S")
         facts.append(f"- {program['name']}: PID {target}, binary {program['exe']}, signal {crash['signal']}, "
@@ -634,6 +803,9 @@ def diagnose(targets):
         title = _("Diagnosis: {name}").format(name=names[0])
     elif len(targets) == 1 and is_steam(targets[0]):
         ask = f"A Steam game closed by itself right after starting on this machine ({where}), and I'd like to know why."
+        title = _("Diagnosis: {name}").format(name=names[0])
+    elif len(targets) == 1 and is_launch(targets[0]):
+        ask = f"An app wouldn't open on this machine ({where}): it exited with an error right away, and I'd like to know why."
         title = _("Diagnosis: {name}").format(name=names[0])
     elif len(targets) == 1:
         ask = f"A program crashed on this machine ({where}) and I'd like to know why."
@@ -872,7 +1044,7 @@ def main(args):
         set_config(rest[1], rest[2])
     elif command == "mark" and len(rest) >= 2:
         mark(rest[0], rest[1], " ".join(rest[2:]))
-    elif command == "notify" and len(rest) == 1 and (rest[0].isdigit() or is_boot(rest[0]) or is_steam(rest[0])):
+    elif command == "notify" and len(rest) == 1 and (rest[0].isdigit() or is_boot(rest[0]) or is_steam(rest[0]) or is_launch(rest[0])):
         notify(rest[0])
     elif command == "open" and not rest:
         open_window()
@@ -882,7 +1054,7 @@ def main(args):
         skill(rest[0])
     elif command == "install" and len(rest) == 1:
         install(rest[0])
-    elif command == "diagnose" and rest and all(r.isdigit() or is_boot(r) or is_steam(r) for r in rest):
+    elif command == "diagnose" and rest and all(r.isdigit() or is_boot(r) or is_steam(r) or is_launch(r) for r in rest):
         diagnose(rest)
     else:
         sys.exit(__doc__.strip())
