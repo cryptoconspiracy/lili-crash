@@ -65,6 +65,15 @@
   </supports>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.5.0" date="2026-10-02">
+      <description>
+        <ul>
+          <li>A lily logo in the theme's colours, a tray icon on every desktop, a local AI through Ollama, and setup at first login</li>
+          <li>packages/: a package to download for each distribution, versioned, now with Ubuntu 22.04 and 24.04, Debian 12 and Leap 16.0</li>
+          <li>The diagnosis first decides whether a crash affected you, and answers after a few commands</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.4.0" date="2026-09-28">
       <description>
         <ul>

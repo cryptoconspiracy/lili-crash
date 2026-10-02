@@ -1,5 +1,5 @@
 Name:           lili-crash
-Version:        0.4.0
+Version:        0.5.0
 Release:        1%{?dist}
 Summary:        Find out why a program closed by itself, with a one-click AI diagnosis
 License:        MIT
@@ -70,6 +70,11 @@ rm -f %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 %{_datadir}/plasma/plasmoids/lili/
 
 %changelog
+* Fri Oct 02 2026 Dan B <unknown@cryptoconspiracy.io> - 0.5.0-1
+- A lily logo in the theme's colours, a tray icon on every desktop, a local AI through Ollama, and setup at first login
+- packages/: a package to download for each distribution, versioned, now with Ubuntu 22.04 and 24.04, Debian 12 and Leap 16.0
+- The diagnosis first decides whether a crash affected you, and answers after a few commands
+
 * Mon Sep 28 2026 Dan B <unknown@cryptoconspiracy.io> - 0.4.0-1
 - The first Debian package is the next release, not 0.3
 - Packages for Fedora, openSUSE, Debian, Ubuntu and Arch, and lili-crash setup

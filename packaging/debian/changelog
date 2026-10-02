@@ -1,3 +1,11 @@
+lili-crash (0.5.0-1) unstable; urgency=medium
+
+  * A lily logo in the theme's colours, a tray icon on every desktop, a local AI through Ollama, and setup at first login
+  * packages/: a package to download for each distribution, versioned, now with Ubuntu 22.04 and 24.04, Debian 12 and Leap 16.0
+  * The diagnosis first decides whether a crash affected you, and answers after a few commands
+
+ -- Dan B <unknown@cryptoconspiracy.io>  Fri, 02 Oct 2026 02:02:06 -0300
+
 lili-crash (0.4.0-1) unstable; urgency=medium
 
   * The first Debian package is the next release, not 0.3
