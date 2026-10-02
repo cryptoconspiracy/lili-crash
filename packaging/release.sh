@@ -1,7 +1,7 @@
 #!/bin/bash
 # Publishes a new version everywhere, from this computer:
 #
-#   make release VERSION=1.2.1            bump, tag, GitHub release, AUR hash, OBS (7 distros)
+#   make release VERSION=1.2.1            bump, tag, GitHub release, AUR hash, OBS, packages/VERSION
 #   make release VERSION=1.2.1 DRY_RUN=1  the same in a throwaway clone, nothing leaves the machine
 #
 # It uses the gh and osc logins of this machine; no password is stored anywhere else.
@@ -41,7 +41,7 @@ step "tests"
 make -s check
 
 last=$(git describe --tags --abbrev=0 2>/dev/null || true)
-mapfile -t changes < <(git log --no-merges --format=%s ${last:+"$last"..HEAD} | grep -vE '^(AUR package|README|[0-9]+\.[0-9]+\.[0-9]+)' || true)
+mapfile -t changes < <(git log --no-merges --format=%s ${last:+"$last"..HEAD} | grep -vE '^(AUR package|Packages:|README|[0-9]+\.[0-9]+\.[0-9]+)' || true)
 ((${#changes[@]})) || changes=("Maintenance release")
 today_rpm=$(LC_ALL=C date '+%a %b %d %Y')
 today_deb=$(LC_ALL=C date -R)
@@ -144,6 +144,12 @@ else
   done
   echo "$results"
   grep -qE 'failed|unresolvable|broken' <<<"$results" && fail "an OBS build failed: ${osc[*]} buildlog $obs_prj $obs_pkg <repo> x86_64"
+
+  step "packages/$version: the built packages, one per distribution, for people who'd rather download a file"
+  packaging/packages.sh "$version"
+  git add packages
+  git commit -q -m "Packages: $version"
+  git push -q origin main
 fi
 
 step "AUR"
