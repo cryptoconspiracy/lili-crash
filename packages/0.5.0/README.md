@@ -6,7 +6,7 @@ pieces from your distribution. Or paste the block below it into a terminal, whic
 same.
 
 These packages don't update themselves. To get new versions with your system updates,
-add the repository instead: see [Install](../README.md#install) in the README.
+add the repository instead: see [Install](../../README.md#install) in the README.
 
 ## Fedora 44
 
