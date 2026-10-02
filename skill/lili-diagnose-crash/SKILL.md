@@ -21,6 +21,40 @@ Adapted from Omarchy's diagnose-crash skill (MIT, David Heinemeier Hansson).
 Work from evidence. The goal is an honest account of what happened, not a plausible
 story.
 
+## First decide whether it matters
+
+Every Linux journal is full of errors, and most of them never touch the user. Before
+digging, spend a couple of commands on one question: **did this affect the person at
+the keyboard?** Put the answer in the first sentence of your first reply.
+
+It usually **doesn't** matter when:
+
+- a background helper died and came straight back (a thumbnailer, an indexer, a
+  tray applet, a portal), or it was a process the user never saw;
+- it happened while the session was logging out, shutting down or suspending;
+- another process ended it on purpose (`SIGTERM`, `SIGKILL`, `SIGHUP`) and it wasn't
+  the OOM killer;
+- the same error line shows up in boots or runs where everything worked. Check one
+  before calling a line the cause;
+- a virtual machine was switched off from outside: the boot ends with no shutdown
+  recorded, but nothing froze. The prompt says when this is a virtual machine.
+
+Then say so in two or three sentences: what it was, why it's harmless, and that
+nothing needs doing. Record it as diagnosed, suggest `ignored` if it will keep coming
+back (it silences that program's notifications, so ask first), and **stop**. Offer to
+dig further only if the user wants to.
+
+It **does** matter when the user lost work, an app they were using closed, the machine
+froze under them, a game wouldn't run, or it keeps happening to something they use.
+That's when the rest of this skill applies.
+
+## Keep the user in the loop
+
+Many tools ask the user to approve each command you run, so every command costs them
+a click. Give a first answer after about five commands: what you know, what you
+don't, and what the next command would tell you. Carry on when they ask. One command
+that reads the right time window beats ten that each read a little.
+
 ## Read the notes for this distro first
 
 Package logs, debug symbol servers and snapshot tools differ between distros. The
@@ -184,12 +218,14 @@ record it with `lili-crash mark 'launch:<app>' diagnosed '<the cause in one sent
 
 Answer in the user's language, briefly, in this order:
 
-1. What crashed, and what it was doing at the time.
-2. The most likely mechanism, keeping what the evidence **proves** clearly apart from
+1. Whether it affected them, in one sentence. If it didn't, that sentence and the
+   reason are the whole report.
+2. What crashed, and what it was doing at the time.
+3. The most likely mechanism, keeping what the evidence **proves** clearly apart from
    what you're **inferring**.
-3. Whether any of the user's data was lost, and where to recover it. Check the trash
+4. Whether any of the user's data was lost, and where to recover it. Check the trash
    before concluding anything is gone.
-4. Whether it's likely to happen again, and what would avoid or fix it.
+5. Whether it's likely to happen again, and what would avoid or fix it.
 
 Be straight about the limits of the evidence. If the cause is genuinely ambiguous,
 say so instead of building confidence out of guesswork.
