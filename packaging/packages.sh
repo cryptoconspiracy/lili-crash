@@ -85,7 +85,8 @@ EOF
     case $fmt in
       rpm) [[ $label == fedora* ]] && echo "sudo dnf install $raw/$f" || echo "sudo zypper --no-gpg-checks install $raw/$f" ;;
       deb) printf 'cd /tmp && curl -fLO %s/%s\nsudo apt install ./%s\n' "$raw" "$f" "$f" ;;
-      *) echo "sudo pacman -U $raw/$f" ;;
+      # From a URL pacman insists on a signature from a trusted key; a local file doesn't.
+      *) printf 'cd /tmp && curl -fLO %s/%s\nsudo pacman -U ./%s\n' "$raw" "$f" "$f" ;;
     esac
     echo '```'
     echo
