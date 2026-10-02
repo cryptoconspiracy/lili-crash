@@ -14,7 +14,7 @@ optdepends=('plasma-workspace: the panel widget with AI usage and crash history'
             'konsole: a terminal for the diagnosis')
 install=lili-crash.install
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('2aa7e420a09e436feac92afa786f9d8e59003f995cadb3167ecf94f403e9d786')
+sha256sums=('6b626ba6efd9bd83137224ba0e4452d921013f5218666381e73402c43ae229ac')
 
 build() {
   cd "$pkgname-$pkgver"
