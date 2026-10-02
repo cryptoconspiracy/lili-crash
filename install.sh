@@ -127,9 +127,10 @@ ln -sfn "$repo/bin/lili-crash" "$bin/lili-crash"
 data=${XDG_DATA_HOME:-$HOME/.local/share}
 icons=$data/icons/hicolor/128x128/apps
 mkdir -p "$icons" "$data/applications"
-for img in "$repo"/plasma/lili/contents/images/lili*.png; do
+for img in "$repo"/plasma/lili/contents/images/{logo,lili1,lili2,lili3}.png; do
   cp "$img" "$icons/lili-crash-$(basename "$img")"
 done
+install -Dm644 "$repo/plasma/lili/contents/images/logo-symbolic.svg" "$data/icons/hicolor/scalable/apps/lili-crash-symbolic.svg"
 sed "s|^Exec=lili-crash|Exec=$bin/lili-crash|" "$repo/share/lili-crash.desktop" >"$data/applications/lili-crash.desktop"
 
 mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"

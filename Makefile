@@ -2,6 +2,7 @@
 # For a per-user install from this checkout, use ./install.sh instead.
 
 PREFIX ?= /usr
+SYSCONFDIR ?= /etc
 DESTDIR ?=
 SHARE = $(DESTDIR)$(PREFIX)/share
 WIDGET = plasma/lili
@@ -22,7 +23,7 @@ check:
 	python3 -m py_compile bin/lili-crash
 	for po in po/*/*.po; do msgfmt --check -o /dev/null $$po || exit 1; done
 	if command -v appstreamcli >/dev/null; then appstreamcli validate --no-net $(METAINFO); fi
-	if command -v desktop-file-validate >/dev/null; then desktop-file-validate share/lili-crash.desktop; fi
+	if command -v desktop-file-validate >/dev/null; then desktop-file-validate share/lili-crash.desktop share/lili-crash-setup.desktop; fi
 
 install: locales
 	install -Dm755 bin/lili-crash $(DESTDIR)$(PREFIX)/bin/lili-crash
@@ -34,12 +35,15 @@ install: locales
 	sed 's|%h/.local/bin/lili-crash|$(PREFIX)/bin/lili-crash|' share/lili-crash.service \
 	  | install -Dm644 /dev/stdin $(DESTDIR)$(PREFIX)/lib/systemd/user/lili-crash.service
 	install -Dm644 share/lili-crash.desktop $(SHARE)/applications/lili-crash.desktop
+	install -Dm644 share/lili-crash-setup.desktop $(DESTDIR)$(SYSCONFDIR)/xdg/autostart/lili-crash-setup.desktop
 	install -Dm644 $(METAINFO) $(SHARE)/metainfo/io.github.cryptoconspiracy.LiliCrash.metainfo.xml
-	for avatar in lili1 lili2 lili3; do \
+	for avatar in logo lili1 lili2 lili3; do \
 	  install -Dm644 $(WIDGET)/contents/images/$$avatar.png $(SHARE)/icons/hicolor/128x128/apps/lili-crash-$$avatar.png; \
 	done
 	# the default avatar; each user's choice is a link in their own icon theme
-	install -Dm644 $(WIDGET)/contents/images/lili2.png $(SHARE)/icons/hicolor/128x128/apps/lili-crash.png
+	install -Dm644 $(WIDGET)/contents/images/logo.png $(SHARE)/icons/hicolor/128x128/apps/lili-crash.png
+	# the tray icon outside Plasma; the panel paints it in the theme's text colour
+	install -Dm644 $(WIDGET)/contents/images/logo-symbolic.svg $(SHARE)/icons/hicolor/scalable/apps/lili-crash-symbolic.svg
 	install -d $(SHARE)/plasma/plasmoids
 	cp -r $(WIDGET) $(SHARE)/plasma/plasmoids/
 	install -Dm644 share/lili-crash.1 $(SHARE)/man/man1/lili-crash.1

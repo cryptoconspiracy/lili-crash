@@ -63,9 +63,16 @@ herself, offering to open an issue for it.
 The AI only looks. It never changes anything on your computer without asking you
 first.
 
+It also starts by asking itself the question that matters most: **did this get in
+your way at all?** Every Linux system logs errors all day, and most of them never touch
+you. When a crash was harmless (a background helper that died and came straight back,
+something that closed while you were logging out), the AI says so in a couple of
+sentences and stops, instead of keeping you busy approving one command after another.
+
 ### 3. Lili lives next to your clock
 
-Lili sits in the corner of your taskbar, next to the Wi-Fi and the volume.
+Lili sits in the corner of your taskbar, next to the Wi-Fi and the volume. Her icon is
+a small lily drawn in your theme's colours, like the icons around it.
 
 <p align="center"><img src="assets/screenshots/tray.png" width="340" alt="Lili in the system tray"></p>
 
@@ -105,10 +112,15 @@ Right-click Lili and pick *Configure*.
 
 <p align="center"><img src="assets/screenshots/settings.png" width="520" alt="Lili's settings"></p>
 
-- **Pick your Lili.** Three looks; the one you choose shows up everywhere.
+- **Pick your Lili.** The lily logo (the default), or one of three illustrated Lilis;
+  the one you choose shows up everywhere.
 - **Pick your AI.** Claude Code, Codex, OpenCode, Gemini CLI, Antigravity CLI, GitHub
   Copilot CLI, Cursor CLI or Grok CLI. Don't have one? The **Install** button next to
   it runs the official installer for you, no password needed.
+- **Or keep it on your computer.** Pick **Ollama (local AI)** and press **Install**:
+  Lili sets up Ollama, OpenCode and a small model in your home folder, and from then on
+  the diagnosis never leaves your machine. Already run Ollama on a server of your own?
+  Put its address in **Ollama server** and the model runs there instead.
 - **Pick the model**, if your AI offers more than one.
 - **Your Linux, your notes.** Lili knows where each Linux flavour keeps its records
   (Arch, Garuda, Debian, Ubuntu, Fedora, openSUSE and more). You can read those notes
@@ -117,11 +129,21 @@ Right-click Lili and pick *Configure*.
 
 ## Install
 
-### From packages
+### The easy way: download a package
 
-Signed repositories on the openSUSE Build Service. After installing, run
-`lili-crash setup` once as your own user (not root): it turns the notification service
-on, puts Lili next to your clock and links the diagnosis for Claude Code and Codex.
+Open the [**packages**](packages/) folder, find your Linux, download the file and open
+it: your software center (GNOME Software, KDE Discover, the Ubuntu App Center, Mint's
+Software Manager) installs it. There's a package for Ubuntu 22.04 to 26.04 and the
+systems built on it (Linux Mint, Pop!_OS, Zorin OS), Debian 12 and 13, Fedora 43 and 44,
+openSUSE Tumbleweed and Leap 16.0, and Arch with the systems built on it.
+
+Then log out and back in, or open **Lili Crash** from your application menu: Lili sets
+herself up for you the first time. There's nothing to type.
+
+### With updates: add the repository
+
+A downloaded package stays at its version. To get new versions along with your system
+updates, add the signed repository on the openSUSE Build Service instead.
 
 **Fedora 43 and 44**
 
@@ -130,17 +152,20 @@ sudo dnf config-manager addrepo --from-repofile=https://download.opensuse.org/re
 sudo dnf install lili-crash
 ```
 
-**openSUSE Tumbleweed**
+**openSUSE Tumbleweed and Leap 16.0**: set `repo` to `openSUSE_Tumbleweed` or `openSUSE_Leap_16.0`.
 
 ```bash
-sudo zypper addrepo -f https://download.opensuse.org/repositories/home:/cryptoconspiracy/openSUSE_Tumbleweed/home:cryptoconspiracy.repo
+repo=openSUSE_Tumbleweed
+sudo zypper addrepo -f https://download.opensuse.org/repositories/home:/cryptoconspiracy/$repo/home:cryptoconspiracy.repo
 sudo zypper install lili-crash
 ```
 
-**Debian 13, Ubuntu 25.10 and 26.04**: set `repo` to `Debian_13`, `xUbuntu_25.10` or `xUbuntu_26.04`.
+**Debian and Ubuntu**: set `repo` to `Debian_12`, `Debian_13`, `xUbuntu_22.04`,
+`xUbuntu_24.04`, `xUbuntu_25.10` or `xUbuntu_26.04` (Linux Mint 21 and 22 use the
+Ubuntu 22.04 and 24.04 ones).
 
 ```bash
-repo=Debian_13
+repo=xUbuntu_24.04
 curl -fsSL https://download.opensuse.org/repositories/home:/cryptoconspiracy/$repo/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/cryptoconspiracy.gpg >/dev/null
 echo "deb https://download.opensuse.org/repositories/home:/cryptoconspiracy/$repo/ /" | sudo tee /etc/apt/sources.list.d/cryptoconspiracy.list
 sudo apt update && sudo apt install lili-crash
@@ -183,14 +208,16 @@ Claude or ChatGPT subscription).
 ### Packagers
 
 `make && make DESTDIR=... install` puts everything under `/usr`: the program, the
-diagnosis skill, the user service, the panel widget and the icons. Each user then runs
-`lili-crash setup` once.
+diagnosis skill, the user service, the panel widget and the icons, plus an autostart
+entry in `/etc/xdg/autostart` that runs `lili-crash setup --if-needed` at each user's
+first login.
 
 ### Releasing (maintainers)
 
 `make release VERSION=1.2.3` bumps the version everywhere, tags it, publishes the GitHub
 release with the widget, updates the AUR recipe and the openSUSE Build Service packages,
-and waits for the builds. `DRY_RUN=1` does it all in a throwaway clone without publishing.
+waits for the builds, and copies them into `packages/VERSION` for the download page.
+`DRY_RUN=1` does it all in a throwaway clone without publishing.
 
 ### Updating
 
@@ -233,8 +260,8 @@ how it went is very welcome, and so are notes for a Linux that isn't listed
 
 | | |
 |---|---|
-| **KDE Plasma 6** | Everything: notifications, Lili next to the clock, settings |
-| **GNOME, XFCE, Cinnamon and others** | Crash notifications and the diagnosis. Lili's icon next to the clock is KDE only for now |
+| **KDE Plasma 6** | Everything: notifications, Lili next to the clock with your AI usage, settings |
+| **GNOME, XFCE, Cinnamon, MATE and others** | Notifications, the diagnosis, and Lili in the system tray with your crash history, one click from *Find out why*. The tray icon uses AppIndicator, which the packages bring along. On GNOME it needs the AppIndicator extension, which Ubuntu turns on already |
 | **Wayland or X11** | Either one |
 
 ## Privacy, honestly
@@ -243,7 +270,9 @@ how it went is very welcome, and so are notes for a Linux that isn't listed
   memory. That copy can contain passwords or documents. When you click *Find out why*,
   the AI reads it, and what the AI reads goes to the company behind it (Anthropic,
   OpenAI, Google...). **If the program that crashed was handling something private,
-  don't click.**
+  don't click**, or pick **Ollama (local AI)**: then the AI runs on your own computer
+  (or your own server) and nothing leaves it. A small local model is slower and less
+  sharp than the big ones, but it's yours.
 - To show your usage, Lili asks Claude and Codex for your numbers the same way their
   own apps do, with the login they already saved. It doesn't send anything anywhere
   else.
@@ -275,6 +304,9 @@ Everything Lili does is also a command:
 | `lili-crash install <agent>` | Run an AI's official installer in a terminal |
 | `lili-crash skill <path\|view\|edit\|reset>` | The notes for your distribution |
 | `lili-crash config [set <key> <value>]` | Settings shared with the tray icon |
+| `lili-crash tray` | Lili in the system tray, on desktops other than KDE Plasma (started at login by `setup`) |
+| `lili-crash local setup` | Get the local AI ready: OpenCode, Ollama and the model, or check your own Ollama server |
+| `lili-crash setup [--if-needed]` | This user's part of the install: service, tray, diagnosis skill; packages run it at first login |
 
 `coredumpctl list` shows the PIDs. A freeze is known by its boot id (`journalctl --list-boots`),
 and its state lives under the name `freeze`. Lili counts a boot as frozen when it ended
@@ -294,6 +326,23 @@ To check the installer on other distributions, `tests/install-in-containers.sh` 
 in clean Ubuntu, Debian, Fedora, openSUSE and Arch containers (needs podman).
 
 ## What's new
+
+### 0.5: after the first round of feedback
+
+Someone tried Lili on a test machine and wrote back with five points. All five are in:
+
+- **No terminal to install.** The [packages](packages/) folder has a file for each
+  Linux, ready to open in your software center, and Lili sets herself up at your first
+  login. Ubuntu 22.04 and 24.04, Debian 12 and openSUSE Leap 16.0 joined the list.
+- **Not just KDE.** On GNOME, XFCE, Cinnamon and the others, Lili lives in the system
+  tray with your crash history and *Find out why*.
+- **A real logo.** A lily, drawn in your theme's colours in the tray like every other
+  icon there. The illustrated Lilis are still one click away in the settings.
+- **A local AI.** Ollama with a small model, set up by Lili herself in your home folder
+  or pointed at your own server. Nothing goes to an AI company.
+- **Less time wasted.** The AI first decides whether a crash affected you at all; when
+  it didn't, it says so and stops. It gives a first answer after a handful of commands
+  instead of asking you to approve dozens.
 
 ### 0.4: apps that won't open
 

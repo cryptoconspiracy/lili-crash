@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: lili-crash\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-25 22:02-0300\n"
+"POT-Creation-Date: 2026-09-30 19:50-0300\n"
 "PO-Revision-Date: 2026-09-25 12:00-0300\n"
 "Last-Translator: Dan B\n"
 "Language-Team: Portuguese (Brazil)\n"
@@ -12,89 +12,108 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: plasma/lili/contents/ui/configGeneral.qml:88
+#: plasma/lili/contents/config/config.qml:6
+msgid "General"
+msgstr "Geral"
+
+#: plasma/lili/contents/config/config.qml:11
+msgid "Support"
+msgstr "Apoie"
+
+#: plasma/lili/contents/ui/configGeneral.qml:92
 msgid "Avatar:"
 msgstr "Avatar:"
 
-#: plasma/lili/contents/ui/configGeneral.qml:97
+#: plasma/lili/contents/ui/configGeneral.qml:102
 msgid "AI agents"
 msgstr "Agentes de IA"
 
-#: plasma/lili/contents/ui/configGeneral.qml:101
+#: plasma/lili/contents/ui/configGeneral.qml:106
 msgid "Diagnose crashes with:"
 msgstr "Diagnosticar com:"
 
-#: plasma/lili/contents/ui/configGeneral.qml:125
-#: plasma/lili/contents/ui/main.qml:32
+#: plasma/lili/contents/ui/configGeneral.qml:130
+#: plasma/lili/contents/ui/main.qml:36
 msgid "default model"
 msgstr "modelo padrão"
 
-#: plasma/lili/contents/ui/configGeneral.qml:138
+#: plasma/lili/contents/ui/configGeneral.qml:144
 msgid "Type a model name the agent accepts, or leave it on the default."
 msgstr "Digite o nome de um modelo que o agente aceite, ou deixe no padrão."
 
-#: plasma/lili/contents/ui/configGeneral.qml:155
+#: plasma/lili/contents/ui/configGeneral.qml:161
 msgid "installed"
 msgstr "instalado"
 
-#: plasma/lili/contents/ui/configGeneral.qml:162
+#: plasma/lili/contents/ui/configGeneral.qml:168
 msgid "Install"
 msgstr "Instalar"
 
-#: plasma/lili/contents/ui/configGeneral.qml:165
+#: plasma/lili/contents/ui/configGeneral.qml:171
 msgid ""
 "Runs the official installer in a terminal, in your home folder, without sudo."
 msgstr ""
 "Roda o instalador oficial num terminal, na sua pasta pessoal, sem sudo."
 
-#: plasma/lili/contents/ui/configGeneral.qml:173
+#: plasma/lili/contents/ui/configGeneral.qml:178
+msgid "Ollama server:"
+msgstr "Servidor do Ollama:"
+
+#: plasma/lili/contents/ui/configGeneral.qml:184
+msgid ""
+"Leave it on localhost and Install sets Ollama up on this computer. Point it "
+"at your own server to run the model there. Either way, nothing goes to an AI "
+"company."
+msgstr "Deixe em localhost e o Instalar prepara o Ollama neste computador. Aponte para o seu próprio servidor para rodar o modelo lá. Nos dois casos, nada vai para uma empresa de IA."
+
+#: plasma/lili/contents/ui/configGeneral.qml:189
 msgid "Diagnosis skill"
 msgstr "Skill de diagnóstico"
 
-#: plasma/lili/contents/ui/configGeneral.qml:177
+#: plasma/lili/contents/ui/configGeneral.qml:193
 msgid "Notes for:"
 msgstr "Notas para:"
 
-#: plasma/lili/contents/ui/configGeneral.qml:178
+#: plasma/lili/contents/ui/configGeneral.qml:194
 msgid "%1 (edited by you)"
 msgstr "%1 (editado por você)"
 
-#: plasma/lili/contents/ui/configGeneral.qml:183
+#: plasma/lili/contents/ui/configGeneral.qml:199
 msgid "View"
 msgstr "Ver"
 
-#: plasma/lili/contents/ui/configGeneral.qml:188
+#: plasma/lili/contents/ui/configGeneral.qml:204
 msgid "Edit"
 msgstr "Editar"
 
-#: plasma/lili/contents/ui/configGeneral.qml:191
+#: plasma/lili/contents/ui/configGeneral.qml:207
 msgid ""
 "Your copy is kept in ~/.config/lili/skills, so updates never overwrite it."
 msgstr ""
 "Sua cópia fica em ~/.config/lili/skills, e as atualizações nunca a "
 "sobrescrevem."
 
-#: plasma/lili/contents/ui/configGeneral.qml:196
+#: plasma/lili/contents/ui/configGeneral.qml:212
 msgid "Restore default"
 msgstr "Restaurar padrão"
 
-#: plasma/lili/contents/ui/configGeneral.qml:203
+#: plasma/lili/contents/ui/configGeneral.qml:219
 msgid "Terminal"
 msgstr "Terminal"
 
-#: plasma/lili/contents/ui/configGeneral.qml:207
+#: plasma/lili/contents/ui/configGeneral.qml:223
 msgid "Open in:"
 msgstr "Abrir no:"
 
-#: plasma/lili/contents/ui/configGeneral.qml:210
+#: plasma/lili/contents/ui/configGeneral.qml:226
 msgid "Automatic"
 msgstr "Automático"
 
-#: plasma/lili/contents/ui/configGeneral.qml:216
+#: plasma/lili/contents/ui/configGeneral.qml:232
 msgid "Shell afterwards:"
 msgstr "Shell depois:"
 
-#: plasma/lili/contents/ui/configGeneral.qml:224
+#: plasma/lili/contents/ui/configGeneral.qml:240
 msgid "Lili speaks your system's language."
 msgstr "A Lili fala o idioma do seu sistema."
 
@@ -119,146 +138,138 @@ msgstr "Copiar"
 msgid "Copied"
 msgstr "Copiado"
 
-#: plasma/lili/contents/ui/main.qml:38
+#: plasma/lili/contents/ui/main.qml:42
 msgid "Not installed"
 msgstr "Não instalado"
 
-#: plasma/lili/contents/ui/main.qml:39
+#: plasma/lili/contents/ui/main.qml:43
 msgid "Not logged in"
 msgstr "Sem login"
 
-#: plasma/lili/contents/ui/main.qml:40
+#: plasma/lili/contents/ui/main.qml:44
 msgid "Login expired; open the agent once to renew it"
 msgstr "Login expirado; abra o agente uma vez para renovar"
 
-#: plasma/lili/contents/ui/main.qml:41
+#: plasma/lili/contents/ui/main.qml:45
 msgid "Can't reach the server"
 msgstr "Sem conexão com o servidor"
 
-#: plasma/lili/contents/ui/main.qml:42
+#: plasma/lili/contents/ui/main.qml:46
 msgid "The server refused the request"
 msgstr "O servidor recusou o pedido"
 
-#: plasma/lili/contents/ui/main.qml:57
+#: plasma/lili/contents/ui/main.qml:61
 msgid "resets today at %1"
 msgstr "renova hoje às %1"
 
-#: plasma/lili/contents/ui/main.qml:58
+#: plasma/lili/contents/ui/main.qml:62
 msgid "resets %1 at %2"
 msgstr "renova %1 às %2"
 
-#: plasma/lili/contents/ui/main.qml:66
+#: plasma/lili/contents/ui/main.qml:70
 msgid "today at %1"
 msgstr "hoje às %1"
 
-#: plasma/lili/contents/ui/main.qml:67
+#: plasma/lili/contents/ui/main.qml:71
 msgid "yesterday at %1"
 msgstr "ontem às %1"
 
-#: plasma/lili/contents/ui/main.qml:68
+#: plasma/lili/contents/ui/main.qml:72
 msgid "%1 at %2"
 msgstr "%1 às %2"
 
-#: plasma/lili/contents/ui/main.qml:106
+#: plasma/lili/contents/ui/main.qml:110
 msgid "%1 (%2): %3% of the session, %4% of the week"
 msgstr "%1 (%2): %3% da sessão, %4% da semana"
 
-#: plasma/lili/contents/ui/main.qml:112
+#: plasma/lili/contents/ui/main.qml:116
 msgid "Diagnoses with %1 (%2)"
 msgstr "Diagnostica com %1 (%2)"
 
-#: plasma/lili/contents/ui/main.qml:113
+#: plasma/lili/contents/ui/main.qml:117
 msgid "No new crashes"
 msgstr "Nenhuma falha nova"
 
-#: plasma/lili/contents/ui/main.qml:113
+#: plasma/lili/contents/ui/main.qml:117
 msgid "1 new crash"
 msgid_plural "%1 new crashes"
 msgstr[0] "1 falha nova"
 msgstr[1] "%1 falhas novas"
 
-#: plasma/lili/contents/ui/main.qml:251
+#: plasma/lili/contents/ui/main.qml:256
 msgid "Session (5 h)"
 msgstr "Sessão (5 h)"
 
-#: plasma/lili/contents/ui/main.qml:252
+#: plasma/lili/contents/ui/main.qml:257
 msgid "Week"
 msgstr "Semana"
 
-#: plasma/lili/contents/ui/main.qml:294
+#: plasma/lili/contents/ui/main.qml:299
 msgid "New"
 msgstr "Nova"
 
-#: plasma/lili/contents/ui/main.qml:295
+#: plasma/lili/contents/ui/main.qml:300
 msgid "Diagnosed"
 msgstr "Diagnosticada"
 
-#: plasma/lili/contents/ui/main.qml:296 plasma/lili/contents/ui/main.qml:422
+#: plasma/lili/contents/ui/main.qml:301 plasma/lili/contents/ui/main.qml:428
 msgid "Resolved"
 msgstr "Resolvida"
 
-#: plasma/lili/contents/ui/main.qml:297
+#: plasma/lili/contents/ui/main.qml:302
 msgid "Ignored"
 msgstr "Ignorada"
 
-#: plasma/lili/contents/ui/main.qml:322
+#: plasma/lili/contents/ui/main.qml:328
 msgid "All caught up"
 msgstr "Tudo em dia"
 
-#: plasma/lili/contents/ui/main.qml:323
+#: plasma/lili/contents/ui/main.qml:329
 msgid "1 program needs a look"
 msgid_plural "%1 programs need a look"
 msgstr[0] "1 programa precisa de atenção"
 msgstr[1] "%1 programas precisam de atenção"
 
-#: plasma/lili/contents/ui/main.qml:329
+#: plasma/lili/contents/ui/main.qml:335
 msgid "Refresh"
 msgstr "Atualizar"
 
-#: plasma/lili/contents/ui/main.qml:334
+#: plasma/lili/contents/ui/main.qml:340
 msgid "Settings"
 msgstr "Configurações"
 
-#: plasma/lili/contents/ui/main.qml:351
+#: plasma/lili/contents/ui/main.qml:357
 msgid "Crashes"
 msgstr "Falhas"
 
-#: plasma/lili/contents/ui/main.qml:355
+#: plasma/lili/contents/ui/main.qml:361
 msgid "Diagnose all (%1)"
 msgstr "Tratar todos (%1)"
 
-#: plasma/lili/contents/ui/main.qml:355 plasma/lili/contents/ui/main.qml:390
+#: plasma/lili/contents/ui/main.qml:361 plasma/lili/contents/ui/main.qml:396
 msgid "Diagnose"
 msgstr "Diagnosticar"
 
-#: plasma/lili/contents/ui/main.qml:375
+#: plasma/lili/contents/ui/main.qml:381
 msgid "Couldn't read the crash history"
 msgstr "Não consegui ler o histórico de falhas"
 
-#: plasma/lili/contents/ui/main.qml:375
+#: plasma/lili/contents/ui/main.qml:381
 msgid "Nothing has crashed"
 msgstr "Nada travou"
 
-#: plasma/lili/contents/ui/main.qml:385
+#: plasma/lili/contents/ui/main.qml:391
 msgid "%1 times, last %2"
 msgstr "%1 vezes, a última %2"
 
-#: plasma/lili/contents/ui/main.qml:390
+#: plasma/lili/contents/ui/main.qml:396
 msgid "Diagnose again"
 msgstr "Diagnosticar de novo"
 
-#: plasma/lili/contents/ui/main.qml:428
+#: plasma/lili/contents/ui/main.qml:434
 msgid "Ignore"
 msgstr "Ignorar"
 
-#: plasma/lili/contents/ui/main.qml:434
+#: plasma/lili/contents/ui/main.qml:440
 msgid "Reopen"
 msgstr "Reabrir"
-
-#: plasma/lili/contents/config/config.qml:6
-msgid "General"
-msgstr "Geral"
-
-#: plasma/lili/contents/config/config.qml:11
-msgid "Support"
-msgstr "Apoie"

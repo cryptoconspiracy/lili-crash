@@ -16,12 +16,12 @@ Depends: ${misc:Depends},
  systemd,
  libnotify-bin,
  xdg-utils
-Recommends: systemd-coredump, plasma-workspace
-Suggests: konsole
+Recommends: systemd-coredump, python3-gi, gir1.2-ayatanaappindicator3-0.1
+Suggests: plasma-workspace, konsole
 Description: crash notifications with a one-click AI diagnosis
  When a program crashes, Lili Crash lets you know, and with one click asks an
  AI coding assistant such as Claude Code or Codex to investigate and explain
  what happened. It also notices a computer that froze, a Steam game that
  closes right after starting and an app that won't open. On KDE Plasma a tray
- icon shows the crash history and the assistants' usage limits. After
- installing, each user runs "lili-crash setup" once.
+ icon shows the crash history and the assistants' usage limits; on other
+ desktops, a system tray icon. It sets itself up at each user's first login.

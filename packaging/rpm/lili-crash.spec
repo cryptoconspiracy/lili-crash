@@ -22,14 +22,22 @@ Requires:       libnotify
 %endif
 Requires:       python3
 Requires:       xdg-utils
-Recommends:     plasma-workspace
+# the tray icon outside Plasma
+%if 0%{?suse_version}
+Recommends:     %{primary_python}-gobject-Gdk
+Recommends:     typelib-1_0-AyatanaAppIndicator3-0_1
+%else
+Recommends:     python3-gobject
+Recommends:     libayatana-appindicator-gtk3
+%endif
+Suggests:       plasma-workspace
 
 %description
 When a program crashes, Lili lets you know, and with one click she asks an AI
 assistant such as Claude Code or Codex to investigate and explain what happened.
 She also notices a computer that froze, a Steam game that closes right after
-starting and an app that won't open. After installing, each user runs
-"lili-crash setup" once.
+starting and an app that won't open. It sets itself up at each user's
+first login.
 
 %prep
 %autosetup -n %{name}-%{version}
@@ -53,8 +61,10 @@ rm -f %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 %{_datadir}/lili-crash/
 %{_userunitdir}/lili-crash.service
 %{_datadir}/applications/lili-crash.desktop
+%config(noreplace) %{_sysconfdir}/xdg/autostart/lili-crash-setup.desktop
 %{_datadir}/metainfo/io.github.cryptoconspiracy.LiliCrash.metainfo.xml
 %{_datadir}/icons/hicolor/128x128/apps/lili-crash*.png
+%{_datadir}/icons/hicolor/scalable/apps/lili-crash-symbolic.svg
 %dir %{_datadir}/plasma
 %dir %{_datadir}/plasma/plasmoids
 %{_datadir}/plasma/plasmoids/lili/

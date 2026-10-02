@@ -9,11 +9,15 @@
                                         an app that fails within 20 seconds of opening, and a freeze from
                                         the last boot (run by the lili-crash service)
   lili-crash open                       Lili's window: usage and crash history
+  lili-crash tray                       Lili in the system tray, for desktops other than KDE Plasma
   lili-crash diagnose <pid|boot|steam-id|launch-id>...  open Claude in a terminal to find out why
   lili-crash config [set <key> <value>] settings shared with the tray widget
   lili-crash install <agent>            run the agent's official installer in a terminal
   lili-crash skill <path|view|edit|reset>  this distro's notes for the diagnosis skill
-  lili-crash setup                      per-user setup after installing a package: service, tray, skill
+  lili-crash setup [--if-needed]        per-user setup after installing a package: service, tray, skill
+                                        (packages run it by themselves at each user's first login)
+  lili-crash local setup                get the local AI ready: OpenCode, Ollama (in your home folder,
+                                        unless you point Lili at your own Ollama server) and the model
 
 A state (new, diagnosed, resolved, ignored) covers the crashes up to the moment it
 was saved. If the program crashes again afterwards, it is new again.
@@ -33,6 +37,8 @@ import sys
 import tempfile
 import threading
 import time
+import urllib.parse
+import urllib.request
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -743,10 +749,120 @@ def watch():
 
 
 def open_window():
+    setup_if_needed()
     if shutil.which("plasmawindowed"):
         os.execvp("plasmawindowed", ["plasmawindowed", "lili"])
+    if not tray_running() and tray_toolkit():
+        tray()
     # Without Plasma there's no panel to show, so the history goes to a terminal.
     open_terminal("Lili Crash", f"{shlex.quote(sys.argv[0])} list | python3 -m json.tool\n")
+
+
+def tray_toolkit():
+    # AppIndicator is what GNOME, XFCE, Cinnamon and MATE panels show, and every
+    # distribution packages it; PySide6 is missing from Ubuntu 24.04 and Debian 12.
+    try:
+        import gi
+        gi.require_version("Gtk", "3.0")
+        gi.require_version("AyatanaAppIndicator3", "0.1")
+        from gi.repository import AyatanaAppIndicator3, GLib, Gtk
+        return AyatanaAppIndicator3, GLib, Gtk
+    except (ImportError, ValueError):
+        return None
+
+
+def tray():
+    # Plasma has the panel widget; everywhere else this is Lili's place next to the clock.
+    toolkit = tray_toolkit()
+    if not toolkit:
+        sys.exit(_("The tray icon needs AppIndicator: install gir1.2-ayatanaappindicator3-0.1 on Debian and "
+                   "Ubuntu, libayatana-appindicator-gtk3 on Fedora, libayatana-appindicator on Arch."))
+    AppIndicator, GLib, Gtk = toolkit
+    GLib.set_prgname("lili-crash")
+    GLib.set_application_name("Lili Crash")
+    indicator = AppIndicator.Indicator.new("lili-crash", "lili-crash-symbolic",
+                                           AppIndicator.IndicatorCategory.APPLICATION_STATUS)
+    indicator.set_title("Lili Crash")
+    # Inside the source checkout the icons aren't in any theme yet.
+    logo = ROOT / "plasma" / "lili" / "contents" / "images"
+    if (logo / "logo-symbolic.svg").is_file() and not any(
+            (Path(d) / "icons/hicolor/scalable/apps/lili-crash-symbolic.svg").is_file()
+            for d in [os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local/share"), *data_dirs()]):
+        indicator.set_icon_theme_path(str(logo))
+        indicator.set_icon_full("logo-symbolic", "Lili Crash")
+    indicator.set_attention_icon_full("lili-crash", _("Something crashed"))
+    me = str(Path(sys.argv[0]).absolute())
+    run = lambda *args: subprocess.Popen([me, *args], start_new_session=True,
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def item(menu, text, handler=None, enabled=True):
+        entry = Gtk.MenuItem(label=text)
+        entry.set_sensitive(enabled)
+        if handler:
+            entry.connect("activate", lambda _w: handler())
+        menu.append(entry)
+        return entry
+
+    def submenu(menu, text):
+        sub = Gtk.Menu()
+        item(menu, text).set_submenu(sub)
+        return sub
+
+    def set_state(key, state):
+        mark(key, state)
+        refresh()
+
+    def choose_agent(agent):
+        set_config("agent", agent)
+        refresh()
+
+    def refresh():
+        found = programs()
+        new = [p for p in found if p["state"] == "new"]
+        indicator.set_status(AppIndicator.IndicatorStatus.ATTENTION if new else AppIndicator.IndicatorStatus.ACTIVE)
+        menu = Gtk.Menu()
+        item(menu, _("Lili Crash: {count} new").format(count=len(new)) if new else _("Lili Crash: nothing new"),
+             enabled=False)
+        if len(new) > 1:
+            item(menu, _("Find out why, all {count}").format(count=len(new)),
+                 lambda: run("diagnose", *[p["last"]["id"] for p in new]))
+        menu.append(Gtk.SeparatorMenuItem())
+        for p in found[:10]:
+            mark_ = {"new": "● ", "diagnosed": "✓ ", "resolved": "✓ ", "ignored": "– "}.get(p["state"], "")
+            sub = submenu(menu, f"{mark_}{p['name']}, {p['last']['when']}")
+            item(sub, p["summary"] or p["last"]["reason"], enabled=False)
+            item(sub, _("Find out why"), lambda i=p["last"]["id"]: run("diagnose", i))
+            item(sub, _("Mark as resolved"), lambda k=p["exe"]: set_state(k, "resolved"))
+            if p["state"] == "ignored":
+                item(sub, _("Stop ignoring"), lambda k=p["exe"]: set_state(k, "new"))
+            else:
+                item(sub, _("Ignore from now on"), lambda k=p["exe"]: set_state(k, "ignored"))
+        if not found:
+            item(menu, _("No crashes yet"), enabled=False)
+        menu.append(Gtk.SeparatorMenuItem())
+        settings = load_config()
+        ai = submenu(menu, _("Diagnose with"))
+        ready = {a: local_ready(settings) if a == "ollama" else bool(which(spec["command"])) for a, spec in AGENTS.items()}
+        group = []
+        for agent, spec in AGENTS.items():
+            if ready[agent]:
+                choice = Gtk.RadioMenuItem.new_with_label(group, spec["name"])
+                group = choice.get_group()
+                choice.set_active(settings["agent"] == agent)
+                choice.connect("toggled", lambda w, a=agent: w.get_active() and choose_agent(a))
+                ai.append(choice)
+        ai.append(Gtk.SeparatorMenuItem())
+        for agent, spec in AGENTS.items():
+            if not ready[agent]:
+                item(ai, _("Install {agent}").format(agent=spec["name"]), lambda a=agent: run("install", a))
+        item(menu, _("Quit"), Gtk.main_quit)
+        menu.show_all()
+        indicator.set_menu(menu)
+        return True
+
+    refresh()
+    GLib.timeout_add_seconds(20, refresh)
+    Gtk.main()
 
 
 def user_language():
@@ -755,6 +871,17 @@ def user_language():
         if value and value not in ("C", "POSIX"):
             return value
     return "en"
+
+
+# A bare code like pt_BR is enough for a large model; a small local one needs the name,
+# or it answers in the language's other variant.
+LANGUAGE_NAMES = {"pt_BR": "Brazilian Portuguese", "pt_PT": "European Portuguese", "pt": "Portuguese",
+                  "es": "Spanish", "fr": "French", "de": "German", "it": "Italian", "en": "English"}
+
+
+def language_name(code):
+    name = LANGUAGE_NAMES.get(code) or LANGUAGE_NAMES.get(code.split("_")[0])
+    return f"{name} ({code})" if name else code
 
 
 def diagnose(targets):
@@ -803,6 +930,9 @@ def diagnose(targets):
         names.append(program["name"])
 
     where = f"{distro()[1]}, {os.environ.get('XDG_CURRENT_DESKTOP') or 'Linux desktop'}"
+    virt = virtualization()
+    if virt:
+        where += f", a {virt} virtual machine"
     if len(targets) == 1 and frozen:
         ask = f"This computer ({where}) froze and had to be forced off, and I'd like to know why."
         title = _("Diagnosis: {name}").format(name=names[0])
@@ -822,8 +952,10 @@ def diagnose(targets):
     prompt = (f"{ask}\n\nWhat the journal recorded:\n" + "\n".join(facts) +
               f"\n\nUse the lili-diagnose-crash skill (if your tool has no skills, read {SKILL_FILE}), "
               f"and the notes for this distro in {notes_path()}. "
+              "Start by deciding whether this affected me at all: if it's harmless, say so in a few sentences "
+              "and stop. Give me a first answer after about five commands rather than running many in a row. "
               "Don't change anything on the system; if there's a fix, propose it and ask before applying it. "
-              f"Reply in the user's language ({user_language()}).")
+              f"Reply in the user's language: {language_name(user_language())}.")
 
     settings = load_config()
     agent = AGENTS.get(settings["agent"], AGENTS["claude"])
@@ -832,7 +964,14 @@ def diagnose(targets):
         sys.exit(_("{agent} isn't installed: {url}").format(agent=agent["name"], url=agent["url"]))
     model = settings.get(f"{settings['agent']}_model", "default")
     argv = [binary]
-    if agent["model_flag"] and model != "default":
+    before = ""
+    if settings["agent"] == "ollama":
+        # Getting the model ready is quick when it already is, and shows its progress when it isn't.
+        name = local_model_name(settings)
+        before = (f"{shlex.quote(str(Path(sys.argv[0]).absolute()))} local setup || exit\n"
+                  f"export OPENCODE_CONFIG_CONTENT={shlex.quote(json.dumps(opencode_config(settings)))}\n")
+        argv += [agent["model_flag"], f"ollama/{name}"]
+    elif agent["model_flag"] and model != "default":
         argv += [agent["model_flag"], model]
     argv += agent["prompt"]
 
@@ -843,7 +982,143 @@ def diagnose(targets):
     command = " ".join('"$prompt"' if a is PROMPT else shlex.quote(a) for a in argv)
     open_terminal(title, f"prompt=$(cat {shlex.quote(prompt_file)})\n"
                          f"rm -f {shlex.quote(prompt_file)}\n"
-                         f"{command}\n")
+                         f"{before}{command}\n")
+
+
+LOCAL_MODEL = "qwen3.5:4b"
+# Ollama gives cards under 24 GB a 4k window, and OpenCode needs 64k, so Lili keeps
+# its own copy of the model with the bigger window. It shares the weights, not a copy.
+LOCAL_CONTEXT = 65536
+
+
+def local_model(settings):
+    chosen = settings["ollama_model"]
+    return LOCAL_MODEL if chosen == "default" else chosen
+
+
+def local_model_name(settings):
+    return "lili-" + re.sub(r"[^a-z0-9._-]", "-", local_model(settings).lower())
+
+
+# Commands that only read what a diagnosis needs run without asking; anything else
+# still asks, and nothing gets edited. Otherwise the user spends the session clicking "allow".
+READ_ONLY_COMMANDS = ("journalctl", "coredumpctl", "systemctl status", "systemctl --user status",
+                      "lili-crash", "cat", "head", "tail", "grep", "ls", "uname", "lspci", "lsusb",
+                      "free", "df", "uptime", "dmesg", "systemd-detect-virt", "pacman -Q", "rpm -q",
+                      "dpkg -l", "dpkg -s", "flatpak list", "nvidia-smi", "file", "stat", "date", "echo",
+                      "wc", "sort", "uniq", "which", "id", "whoami", "hostnamectl", "lsblk", "findmnt")
+
+
+def opencode_config(settings):
+    name = local_model_name(settings)
+    bash = {"*": "ask", **{f"{c} *": "allow" for c in READ_ONLY_COMMANDS}, **{c: "allow" for c in READ_ONLY_COMMANDS}}
+    return {"provider": {"ollama": {"npm": "@ai-sdk/openai-compatible", "name": "Ollama",
+                                    "options": {"baseURL": settings["ollama_url"].rstrip("/") + "/v1"},
+                                    # A small model that thinks before every step takes many minutes
+                                    # per step; without it each step takes seconds.
+                                    "models": {name: {"name": f"{local_model(settings)} (Lili)", "tools": True,
+                                                      "options": {"reasoningEffort": "none"}}}}},
+            "permission": {"edit": "deny", "external_directory": "allow", "bash": bash}}
+
+
+def ollama(settings, path, body=None, timeout=5):
+    request = urllib.request.Request(settings["ollama_url"].rstrip("/") + path,
+                                     data=None if body is None else json.dumps(body).encode(),
+                                     headers={"Content-Type": "application/json"})
+    return urllib.request.urlopen(request, timeout=timeout)
+
+
+def ollama_models(settings, timeout=5):
+    try:
+        with ollama(settings, "/api/tags", timeout=timeout) as r:
+            return {m["name"] for m in json.load(r).get("models", [])}
+    except (OSError, ValueError):
+        return None
+
+
+def local_ready(settings, timeout=0.5):
+    names = ollama_models(settings, timeout)
+    return bool(which("opencode")) and names is not None and f"{local_model_name(settings)}:latest" in names
+
+
+def is_localhost(url):
+    host = urllib.parse.urlsplit(url).hostname or ""
+    return host in ("localhost", "127.0.0.1", "::1")
+
+
+OLLAMA_UNIT = """[Unit]
+Description=Ollama, the local AI for Lili Crash
+
+[Service]
+ExecStart={binary} serve
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+"""
+
+
+def local_setup():
+    settings = load_config()
+    url = settings["ollama_url"]
+    step = lambda text: print(f"\n>> {text}", flush=True)
+    sh = lambda command: subprocess.run(["sh", "-c", command]).returncode == 0
+
+    if not which("opencode"):
+        step(_("Installing OpenCode"))
+        if not sh(AGENTS["opencode"]["install"]) or not which("opencode"):
+            sys.exit(_("OpenCode didn't install; see the messages above."))
+
+    if ollama_models(settings) is None:
+        if not is_localhost(url):
+            sys.exit(_("No Ollama answering at {url}. Start it there, or set the address back to "
+                       "http://localhost:11434 to run it on this computer.").format(url=url))
+        binary = which("ollama")
+        if not binary:
+            step(_("Installing Ollama in your home folder (about 2 GB, it brings its own GPU libraries)"))
+            home = Path.home() / ".local"
+            arch = {"x86_64": "amd64", "aarch64": "arm64"}.get(os.uname().machine, "amd64")
+            if not shutil.which("zstd"):
+                sys.exit(_("Ollama comes as a .tar.zst file; install your distribution's zstd package and try again."))
+            if not sh(f"curl -fL --progress-bar https://ollama.com/download/ollama-linux-{arch}.tar.zst "
+                      f"| tar --zstd -x -C {shlex.quote(str(home))}"):
+                sys.exit(_("Ollama didn't download; see the messages above."))
+            binary = str(home / "bin" / "ollama")
+        step(_("Starting Ollama as a service of your user"))
+        unit = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "systemd/user/lili-ollama.service"
+        unit.parent.mkdir(parents=True, exist_ok=True)
+        unit.write_text(OLLAMA_UNIT.format(binary=binary))
+        sh("systemctl --user daemon-reload && systemctl --user enable --now lili-ollama.service")
+        for _i in range(30):
+            if ollama_models(settings) is not None:
+                break
+            time.sleep(1)
+        else:
+            sys.exit(_("Ollama didn't start: journalctl --user -u lili-ollama"))
+
+    names = ollama_models(settings) or set()
+    model, name = local_model(settings), local_model_name(settings)
+    if model not in names and f"{model}:latest" not in names:
+        step(_("Downloading {model}; this happens once").format(model=model))
+        with ollama(settings, "/api/pull", {"model": model}, timeout=None) as r:
+            shown = ""
+            for line in r:
+                event = json.loads(line)
+                if event.get("error"):
+                    sys.exit(event["error"])
+                done, total = event.get("completed"), event.get("total")
+                text = f"{event.get('status', '')} {100 * done // total}%" if done and total else event.get("status", "")
+                if text != shown:
+                    print(f"\r   {text:<60}", end="", flush=True)
+                    shown = text
+        print()
+    if f"{name}:latest" not in names:
+        step(_("Giving the model room to read logs ({size}k tokens)").format(size=LOCAL_CONTEXT // 1024))
+        with ollama(settings, "/api/create", {"model": name, "from": model, "stream": False,
+                                              "parameters": {"num_ctx": LOCAL_CONTEXT}}, timeout=None) as r:
+            if json.load(r).get("status") != "success":
+                sys.exit(_("Ollama couldn't prepare the model."))
+    print(_("The local AI is ready: {model} through Ollama at {url}.").format(model=model, url=url), flush=True)
 
 
 def install(name):
@@ -901,6 +1176,10 @@ AGENTS = {
                "url": "https://cursor.com/cli", "install": "curl -fsS https://cursor.com/install | bash"},
     "grok": {"name": "Grok CLI", "command": "grok", "model_flag": None, "prompt": ["--", PROMPT],
              "url": "https://x.ai/cli", "install": "curl -fsSL https://x.ai/cli/install.sh | bash"},
+    # Nothing leaves the machine (or the user's own server): OpenCode driving a model
+    # that Ollama serves. "installed" means the model is ready to answer, not just the binary.
+    "ollama": {"name": "Ollama (local AI)", "command": "opencode", "model_flag": "-m", "prompt": ["--prompt", PROMPT],
+               "url": "https://ollama.com", "install": f"{shlex.quote(str(Path(sys.argv[0]).absolute()))} local setup"},
 }
 SKILL_FILE = ROOT / "skill" / "lili-diagnose-crash" / "SKILL.md"
 DISTRO_NOTES = SKILL_FILE.parent / "distros"
@@ -926,6 +1205,15 @@ def distro():
         if key and (DISTRO_NOTES / f"{key}.md").is_file():
             return key, info.get("PRETTY_NAME") or info.get("NAME") or key
     return "generic", info.get("PRETTY_NAME") or "Linux"
+
+
+def virtualization():
+    # A VM switched off from outside ends its boot like a freeze; the AI should know.
+    try:
+        out = subprocess.run(["systemd-detect-virt", "--vm"], capture_output=True, text=True).stdout.strip()
+    except OSError:
+        return ""
+    return "" if out in ("", "none") else out
 
 
 def notes_path():
@@ -972,9 +1260,10 @@ TERMINALS = {
 
 
 def which(command):
-    # Agent installers drop their binary in ~/.local/bin, which a systemd user
-    # service doesn't have on PATH on every distro.
-    return shutil.which(command, path=os.pathsep.join([os.environ.get("PATH", ""), str(Path.home() / ".local/bin")]))
+    # Agent installers drop their binary in ~/.local/bin (OpenCode's in ~/.opencode/bin),
+    # which a systemd user service doesn't have on PATH on every distro.
+    extra = [str(Path.home() / d) for d in (".local/bin", ".opencode/bin")]
+    return shutil.which(command, path=os.pathsep.join([os.environ.get("PATH", ""), *extra]))
 
 
 def installed_terminals():
@@ -992,7 +1281,8 @@ def terminal_command(choice, cwd, title, cmd):
     return TERMINALS[choice](cwd, title, cmd)
 
 
-DEFAULTS = {"avatar": "lili2", "agent": "claude", "terminal": "auto", "shell": "fish",
+DEFAULTS = {"avatar": "logo", "agent": "claude", "terminal": "auto", "shell": "fish",
+            "ollama_url": "http://localhost:11434",
             **{f"{a}_model": "default" for a, spec in AGENTS.items() if spec["model_flag"]}}
 
 
@@ -1088,11 +1378,56 @@ def setup():
             run("kwriteconfig6", "--file", "kwinrulesrc", "--group", "General", "--key", "rules", rules)
             run("kwriteconfig6", "--file", "kwinrulesrc", "--group", "General", "--key", "count", str(len(rules.split(","))))
         run("dbus-send", "--session", "--type=method_call", "--dest=org.kde.KWin", "/KWin", "org.kde.KWin.reconfigure")
-    if shutil.which("qdbus6") and run("qdbus6", "org.kde.plasmashell", "/PlasmaShell",
-                                      "org.kde.PlasmaShell.evaluateScript", TRAY_SCRIPT):
+    if "KDE" not in os.environ.get("XDG_CURRENT_DESKTOP", "").split(":"):
+        tray_autostart()
+    elif shutil.which("qdbus6") and run("qdbus6", "org.kde.plasmashell", "/PlasmaShell",
+                                        "org.kde.PlasmaShell.evaluateScript", TRAY_SCRIPT):
         print(_("tray: Lili is next to the clock"))
     else:
         print(_("tray: right-click the system tray, choose Configure System Tray, open Entries and set Lili Crash to Always show"))
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    SETUP_DONE.touch()
+
+
+# A package can't reach anyone's home folder, so it ships an autostart entry that
+# runs the setup at each user's first login; nobody has to open a terminal.
+SETUP_DONE = STATE_DIR / "setup-done"
+
+
+def setup_if_needed():
+    if not SETUP_DONE.exists():
+        setup()
+
+
+# Plasma has the panel widget; on every other desktop the tray icon starts with the session.
+TRAY_AUTOSTART = """[Desktop Entry]
+Type=Application
+Name=Lili Crash
+Exec={command} tray
+Icon=lili-crash
+NotShowIn=KDE;
+X-GNOME-Autostart-enabled=true
+NoDisplay=true
+"""
+
+
+def tray_running():
+    return subprocess.run(["pgrep", "-u", str(os.getuid()), "-f", "lili-crash tray$"],
+                          stdout=subprocess.DEVNULL).returncode == 0
+
+
+def tray_autostart():
+    # Written even without AppIndicator, so installing it later is enough.
+    autostart = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "autostart" / "lili-crash-tray.desktop"
+    autostart.parent.mkdir(parents=True, exist_ok=True)
+    autostart.write_text(TRAY_AUTOSTART.format(command=shlex.quote(str(Path(sys.argv[0]).absolute()))))
+    if not tray_toolkit():
+        print(_("tray: the tray icon needs AppIndicator (gir1.2-ayatanaappindicator3-0.1); notifications work without it"))
+        return
+    if not tray_running() and (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+        subprocess.Popen([sys.argv[0], "tray"], start_new_session=True,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print(_("tray: Lili is in the system tray, and she starts with every login"))
 
 
 def main(args):
@@ -1105,8 +1440,9 @@ def main(args):
     elif command == "config" and not rest:
         key, name = distro()
         print(json.dumps({**load_config(), "terminals": installed_terminals(),
-                          "agents": [{"id": a, "name": spec["name"], "installed": bool(which(spec["command"])),
-                                      "models": bool(spec["model_flag"])} for a, spec in AGENTS.items()],
+                          "agents": [{"id": a, "name": spec["name"], "models": bool(spec["model_flag"]),
+                                      "installed": local_ready(load_config()) if a == "ollama" else bool(which(spec["command"]))}
+                                     for a, spec in AGENTS.items()],
                           "distro": {"key": key, "name": name, "edited": (USER_NOTES / f"{key}.md").is_file()}}))
     elif command == "config" and len(rest) == 3 and rest[0] == "set":
         set_config(rest[1], rest[2])
@@ -1116,14 +1452,20 @@ def main(args):
         notify(rest[0])
     elif command == "open" and not rest:
         open_window()
+    elif command == "tray" and not rest:
+        tray()
     elif command == "watch" and not rest:
         watch()
     elif command == "skill" and len(rest) == 1:
         skill(rest[0])
     elif command == "setup" and not rest:
         setup()
+    elif command == "setup" and rest == ["--if-needed"]:
+        setup_if_needed()
     elif command == "install" and len(rest) == 1:
         install(rest[0])
+    elif command == "local" and rest == ["setup"]:
+        local_setup()
     elif command == "diagnose" and rest and all(r.isdigit() or is_boot(r) or is_steam(r) or is_launch(r) for r in rest):
         diagnose(rest)
     else:

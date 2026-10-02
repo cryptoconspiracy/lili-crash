@@ -8,7 +8,9 @@ url="https://github.com/cryptoconspiracy/lili-crash"
 license=('MIT')
 depends=('python' 'systemd' 'libnotify' 'xdg-utils')
 makedepends=('gettext')
-optdepends=('plasma-workspace: the tray icon with AI usage and crash history'
+optdepends=('plasma-workspace: the panel widget with AI usage and crash history'
+            'libayatana-appindicator: the tray icon on desktops other than KDE Plasma'
+            'python-gobject: the tray icon on desktops other than KDE Plasma'
             'konsole: a terminal for the diagnosis')
 install=lili-crash.install
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")

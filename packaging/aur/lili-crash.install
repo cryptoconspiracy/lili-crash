@@ -1,9 +1,7 @@
 post_install() {
   cat <<'MSG'
-==> Lili Crash is installed. As your own user (not root), run once:
-      lili-crash setup
-    It turns the notification service on, puts Lili next to the clock on KDE Plasma,
-    and links the diagnosis skill for Claude Code and Codex.
+==> Lili Crash is installed. She sets herself up at your next login, or right
+    away when you open Lili Crash from the application menu.
 MSG
 }
 

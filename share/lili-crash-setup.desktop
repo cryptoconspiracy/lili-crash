@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Lili Crash setup
+Comment=Turns Lili Crash on for this user, once
+Exec=lili-crash setup --if-needed
+Icon=lili-crash
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+X-KDE-autostart-phase=2

@@ -18,12 +18,16 @@ PlasmoidItem {
 
     readonly property var agentNames: ({
         claude: "Claude Code", codex: "Codex", opencode: "OpenCode", gemini: "Gemini CLI",
-        agy: "Antigravity CLI", copilot: "GitHub Copilot CLI", cursor: "Cursor CLI", grok: "Grok CLI"
+        agy: "Antigravity CLI", copilot: "GitHub Copilot CLI", cursor: "Cursor CLI", grok: "Grok CLI",
+        ollama: "Ollama"
     })
     readonly property string agent: Plasmoid.configuration.agent
     readonly property var current: usage[agent] || {}
     readonly property int session: current.session ? current.session.percent : -1
-    readonly property url avatar: Qt.resolvedUrl("../images/" + Plasmoid.configuration.avatar + ".png")
+    // The logo is drawn in the theme's text colour, like the other tray icons.
+    readonly property bool symbolic: Plasmoid.configuration.avatar === "logo"
+    readonly property url avatar: Qt.resolvedUrl("../images/" + Plasmoid.configuration.avatar
+                                                 + (symbolic ? "-symbolic.svg" : ".png"))
     readonly property string usageScript: Qt.resolvedUrl("../code/usage.py").toString().replace("file://", "")
 
     function modelOf(name) {
@@ -89,7 +93,7 @@ PlasmoidItem {
     function saveSettings() {
         const c = Plasmoid.configuration
         const keys = ["avatar", "agent", "terminal", "shell"].concat(
-            ["claude", "codex", "opencode", "gemini", "copilot", "cursor"].map(a => a + "_model"))
+            ["claude", "codex", "opencode", "gemini", "copilot", "cursor", "ollama"].map(a => a + "_model"), ["ollama_url"])
         settings.run(keys.map(k => "lili-crash config set " + k + " " + quote(c[k])).join(" && "))
     }
 
@@ -186,6 +190,7 @@ PlasmoidItem {
             id: face
             anchors.fill: parent
             source: root.avatar
+            isMask: root.symbolic
             active: compact.containsMouse
         }
 
@@ -310,6 +315,7 @@ PlasmoidItem {
 
                 Kirigami.Icon {
                     source: root.avatar
+                    isMask: root.symbolic
                     Layout.preferredWidth: Kirigami.Units.iconSizes.large
                     Layout.preferredHeight: Kirigami.Units.iconSizes.large
                 }

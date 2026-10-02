@@ -22,6 +22,8 @@
       <li>Notices a Steam game that closes by itself right after starting</li>
       <li>Notices an app that won't open and shows the first thing it complained about</li>
       <li>Shows your AI usage limits next to the clock on KDE Plasma</li>
+      <li>Lives in the system tray on GNOME, XFCE, Cinnamon and other desktops</li>
+      <li>Can diagnose with a local AI through Ollama, so nothing leaves your computer</li>
     </ul>
   </description>
   <launchable type="desktop-id">lili-crash.desktop</launchable>

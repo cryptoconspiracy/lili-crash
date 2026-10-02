@@ -16,6 +16,8 @@ KCM.SimpleKCM {
     property string cfg_gemini_model
     property string cfg_copilot_model
     property string cfg_cursor_model
+    property string cfg_ollama_model
+    property string cfg_ollama_url
     property string cfg_terminal
     property string cfg_shell
     property string cfg_avatarDefault
@@ -26,6 +28,8 @@ KCM.SimpleKCM {
     property string cfg_gemini_modelDefault
     property string cfg_copilot_modelDefault
     property string cfg_cursor_modelDefault
+    property string cfg_ollama_modelDefault
+    property string cfg_ollama_urlDefault
     property string cfg_terminalDefault
     property string cfg_shellDefault
 
@@ -87,6 +91,7 @@ KCM.SimpleKCM {
         RowLayout {
             Kirigami.FormData.label: i18n("Avatar:")
             spacing: Kirigami.Units.largeSpacing
+            AvatarChoice { name: "logo" }
             AvatarChoice { name: "lili1" }
             AvatarChoice { name: "lili2" }
             AvatarChoice { name: "lili3" }
@@ -128,7 +133,8 @@ KCM.SimpleKCM {
                     Layout.preferredWidth: Kirigami.Units.gridUnit * 9
                     visible: modelData.models
                     editable: true
-                    model: modelData.id === "claude" ? [defaultText, "fable", "opus", "sonnet", "haiku"] : [defaultText]
+                    model: modelData.id === "claude" ? [defaultText, "fable", "opus", "sonnet", "haiku"]
+                         : modelData.id === "ollama" ? [defaultText, "qwen3.5:9b", "qwen3.5:2b"] : [defaultText]
                     Component.onCompleted: editText = (page[key] || "default") === "default" ? defaultText : page[key]
                     onEditTextChanged: {
                         const value = editText.trim()
@@ -166,6 +172,16 @@ KCM.SimpleKCM {
                     }
                 }
             }
+        }
+
+        QQC2.TextField {
+            Kirigami.FormData.label: i18n("Ollama server:")
+            Layout.preferredWidth: Kirigami.Units.gridUnit * 16
+            text: page.cfg_ollama_url
+            placeholderText: "http://localhost:11434"
+            onTextEdited: page.cfg_ollama_url = text.trim() || "http://localhost:11434"
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.text: i18n("Leave it on localhost and Install sets Ollama up on this computer. Point it at your own server to run the model there. Either way, nothing goes to an AI company.")
         }
 
         Kirigami.Separator {
