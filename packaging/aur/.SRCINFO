@@ -16,6 +16,6 @@ pkgbase = lili-crash
 	optdepends = python-gobject: the tray icon on desktops other than KDE Plasma
 	optdepends = konsole: a terminal for the diagnosis
 	source = lili-crash-0.5.0.tar.gz::https://github.com/cryptoconspiracy/lili-crash/archive/refs/tags/v0.5.0.tar.gz
-	sha256sums = 6b626ba6efd9bd83137224ba0e4452d921013f5218666381e73402c43ae229ac
+	sha256sums = 0365c483667d50dd1dc9313513813ec4fc7ecd278a65fb22616ff95be186f30c
 
 pkgname = lili-crash
