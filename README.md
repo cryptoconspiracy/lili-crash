@@ -329,7 +329,8 @@ in clean Ubuntu, Debian, Fedora, openSUSE and Arch containers (needs podman).
 
 ### 0.5: after the first round of feedback
 
-Someone tried Lili on a test machine and wrote back with five points. All five are in:
+The [Diolinux](https://diolinux.com.br) team tried Lili on a test machine and wrote back
+with five points. All five are in:
 
 - **No terminal to install.** The [packages](packages/) folder has a file for each
   Linux, ready to open in your software center, and Lili sets herself up at your first
@@ -431,3 +432,7 @@ The same codes are in Lili's settings, under **Support**, each with a Copy butto
 
 The idea and the investigation method come from [Omarchy](https://github.com/omacom/omarchy)
 by David Heinemeier Hansson (MIT). Lili Crash is MIT too.
+
+Thanks to the [Diolinux](https://diolinux.com.br) team for testing Lili and sending the
+feedback that shaped version 0.5: the packages to download, the tray icon outside KDE,
+the logo, the local AI and a diagnosis that knows when to stop.
