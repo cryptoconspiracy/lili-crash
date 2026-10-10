@@ -345,7 +345,7 @@ with five points. All five are in:
   it didn't, it says so and stops. It gives a first answer after a handful of commands
   instead of asking you to approve dozens.
 
-### Unreleased: system update errors on Garuda
+### 0.5.1: system update errors on Garuda
 
 An update can fail inside a terminal without crashing or failing the terminal's
 desktop service. Lili now checks `/var/log/garuda/garuda-update` and its numbered
