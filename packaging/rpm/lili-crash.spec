@@ -1,5 +1,5 @@
 Name:           lili-crash
-Version:        0.5.0
+Version:        0.5.1
 Release:        1%{?dist}
 Summary:        Find out why a program closed by itself, with a one-click AI diagnosis
 License:        MIT
@@ -70,6 +70,10 @@ rm -f %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 %{_datadir}/plasma/plasmoids/lili/
 
 %changelog
+* Sat Oct 10 2026 Dan B <unknown@cryptoconspiracy.io> - 0.5.1-1
+- Detect Garuda updater errors outside crash and launch monitoring
+- packages/: on Arch, install the downloaded file, since pacman wants a trusted signature for a URL
+
 * Fri Oct 02 2026 Dan B <unknown@cryptoconspiracy.io> - 0.5.0-1
 - A lily logo in the theme's colours, a tray icon on every desktop, a local AI through Ollama, and setup at first login
 - packages/: a package to download for each distribution, versioned, now with Ubuntu 22.04 and 24.04, Debian 12 and Leap 16.0

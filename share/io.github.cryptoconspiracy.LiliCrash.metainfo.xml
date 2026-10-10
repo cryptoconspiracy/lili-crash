@@ -65,6 +65,14 @@
   </supports>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.5.1" date="2026-10-10">
+      <description>
+        <ul>
+          <li>Detect Garuda updater errors outside crash and launch monitoring</li>
+          <li>packages/: on Arch, install the downloaded file, since pacman wants a trusted signature for a URL</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.0" date="2026-10-02">
       <description>
         <ul>
