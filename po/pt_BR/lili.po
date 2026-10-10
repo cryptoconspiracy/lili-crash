@@ -12,6 +12,22 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+#, python-brace-format
+msgid "No update error recorded for {id}"
+msgstr "Nenhum erro de atualização registrado para {id}"
+
+msgid "The package database is locked"
+msgstr "O banco de dados de pacotes está bloqueado"
+
+msgid "The updater reported an error"
+msgstr "O atualizador informou um erro"
+
+msgid "System update"
+msgstr "Atualização do sistema"
+
+msgid "System update reported an error"
+msgstr "A atualização do sistema informou um erro"
+
 #: bin/lili-crash:67
 msgid "Touched memory it didn't own"
 msgstr "Acessou memória que não era dele"

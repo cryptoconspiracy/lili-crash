@@ -17,6 +17,22 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+#, python-brace-format
+msgid "No update error recorded for {id}"
+msgstr ""
+
+msgid "The package database is locked"
+msgstr ""
+
+msgid "The updater reported an error"
+msgstr ""
+
+msgid "System update"
+msgstr ""
+
+msgid "System update reported an error"
+msgstr ""
+
 #: bin/lili-crash:67
 msgid "Touched memory it didn't own"
 msgstr ""

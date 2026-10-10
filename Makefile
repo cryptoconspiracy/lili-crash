@@ -21,6 +21,7 @@ locales:
 
 check:
 	python3 -m py_compile bin/lili-crash
+	python3 -m unittest discover -s tests -p 'test_*.py'
 	for po in po/*/*.po; do msgfmt --check -o /dev/null $$po || exit 1; done
 	if command -v appstreamcli >/dev/null; then appstreamcli validate --no-net $(METAINFO); fi
 	if command -v desktop-file-validate >/dev/null; then desktop-file-validate share/lili-crash.desktop share/lili-crash-setup.desktop; fi

@@ -300,7 +300,7 @@ Everything Lili does is also a command:
 | `lili-crash diagnose <pid\|boot\|steam-id\|launch-id>...` | Open the AI on one or more crashes, freezes, Steam games that closed early, or apps that didn't open |
 | `lili-crash mark <binary> <state> [summary]` | Set a program to `new`, `diagnosed`, `resolved` or `ignored` |
 | `lili-crash notify <pid\|boot\|steam-id\|launch-id>` | Show the notification for one of them |
-| `lili-crash watch` | Notify every new crash, every Steam game that closes within two minutes, every app that exits with an error within 20 seconds of opening, and a freeze from the boot before (the `lili-crash` user service runs this) |
+| `lili-crash watch` | Notify every new crash, every Steam game that closes within two minutes, every app that exits with an error within 20 seconds of opening, Garuda updater errors, and a freeze from the boot before (the `lili-crash` user service runs this) |
 | `lili-crash install <agent>` | Run an AI's official installer in a terminal |
 | `lili-crash skill <path\|view\|edit\|reset>` | The notes for your distribution |
 | `lili-crash config [set <key> <value>]` | Settings shared with the tray icon |
@@ -344,6 +344,26 @@ with five points. All five are in:
 - **Less time wasted.** The AI first decides whether a crash affected you at all; when
   it didn't, it says so and stops. It gives a first answer after a handful of commands
   instead of asking you to approve dozens.
+
+### Unreleased: system update errors on Garuda
+
+An update can fail inside a terminal without crashing or failing the terminal's
+desktop service. Lili now checks `/var/log/garuda/garuda-update` and its numbered
+rotations every 30 seconds for explicit `error:` / `erro:` lines, including pacman's
+"unable to lock database". The update appears in the history with a notification
+and *Find out why*. The diagnosis receives the saved error lines and instructions
+to check running package managers before touching a lock.
+
+Each updater run notifies once, including across log rotation and Lili restarts.
+On startup only errors from the last day notify; older errors remain in history.
+Up to 100 events are kept in `~/.local/state/lili/updates.json`. The state key is
+`update:garuda`, and the `update-garuda-...` event id works with `notify` and
+`diagnose`. Diagnosing, resolving and ignoring work like the other events.
+
+This reads existing updater logs without root and never changes the package
+database. It does not monitor arbitrary terminal output, infer a hang just from
+a long-running update, or cover updaters that do not write these logs. A logged
+error is evidence of a failed operation, even if a later retry succeeds.
 
 ### 0.4: apps that won't open
 

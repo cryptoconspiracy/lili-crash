@@ -7,7 +7,8 @@ lili-crash \- find out why a program closed by itself
 .RI [ arguments ]
 .SH DESCRIPTION
 Lili watches for programs that crash (systemd-coredump), a computer that froze, a Steam
-game that closes right after starting, and an app that exits with an error as it opens.
+game that closes right after starting, an app that exits with an error as it opens,
+and errors recorded by Garuda's system updater.
 She notifies each one and, with one click, opens an AI coding assistant (Claude Code,
 Codex and others) in a terminal to find out why.
 .SH COMMANDS
@@ -20,7 +21,7 @@ Set a program to new, diagnosed, resolved or ignored.
 .TP
 .BI notify " id"
 Show the notification for one crash (a PID), freeze (boot), Steam game (steam-...) or
-app that didn't open (launch-...).
+app that didn't open (launch-...), or updater error (update-garuda-...).
 .TP
 .B watch
 Notify every new event; the lili-crash user service runs this.
@@ -50,6 +51,13 @@ Settings and your edited distribution notes.
 .TP
 .I ~/.local/state/lili/
 What you marked as diagnosed, resolved or ignored.
+.TP
+.I /var/log/garuda/garuda-update
+Updater output, checked with its numbered rotations every 30 seconds. Explicit
+error lines become events; arbitrary terminal output is not monitored.
+.TP
+.I ~/.local/state/lili/updates.json
+Saved updater error evidence and notification history (up to 100 events).
 .SH SEE ALSO
 .BR coredumpctl (1),
 https://github.com/cryptoconspiracy/lili-crash
