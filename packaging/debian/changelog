@@ -1,3 +1,9 @@
+lili-crash (0.6.0-1) unstable; urgency=medium
+
+  * Add preventive warnings, private fleet reports, local Linux diagnosis and Arch package installation
+
+ -- Dan B <unknown@cryptoconspiracy.io>  Thu, 22 Oct 2026 19:25:32 -0300
+
 lili-crash (0.5.1-1) unstable; urgency=medium
 
   * Detect Garuda updater errors outside crash and launch monitoring

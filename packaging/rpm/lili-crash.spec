@@ -1,5 +1,5 @@
 Name:           lili-crash
-Version:        0.5.1
+Version:        0.6.0
 Release:        1%{?dist}
 Summary:        Find out why a program closed by itself, with a one-click AI diagnosis
 License:        MIT
@@ -70,6 +70,9 @@ rm -f %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 %{_datadir}/plasma/plasmoids/lili/
 
 %changelog
+* Thu Oct 22 2026 Dan B <unknown@cryptoconspiracy.io> - 0.6.0-1
+- Add preventive warnings, private fleet reports, local Linux diagnosis and Arch package installation
+
 * Sat Oct 10 2026 Dan B <unknown@cryptoconspiracy.io> - 0.5.1-1
 - Detect Garuda updater errors outside crash and launch monitoring
 - packages/: on Arch, install the downloaded file, since pacman wants a trusted signature for a URL
