@@ -5,7 +5,8 @@
   <kcfgfile name=""/>
   <group name="General">
     <entry name="avatar" type="String"><default>logo</default></entry>
-    <entry name="agent" type="String"><default>claude</default></entry>
+    <entry name="agent" type="String"><default>ollama</default></entry>
+    <entry name="preventive" type="String"><default>on</default></entry>
     <entry name="claude_model" type="String"><default>default</default></entry>
     <entry name="codex_model" type="String"><default>default</default></entry>
     <entry name="opencode_model" type="String"><default>default</default></entry>

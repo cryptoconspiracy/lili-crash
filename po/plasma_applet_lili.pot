@@ -274,3 +274,27 @@ msgstr ""
 #: plasma/lili/contents/ui/main.qml:440
 msgid "Reopen"
 msgstr ""
+
+msgid "Ollama on localhost keeps diagnosis on this computer. Remote AI can receive sensitive logs; Lili asks before each remote session."
+msgstr ""
+
+msgid "Warn about persistent resource and hardware risks"
+msgstr ""
+
+msgid "Checks every minute, without AI or uploads. Warnings describe risk, not a guaranteed future failure."
+msgstr ""
+
+msgid "Save incident report"
+msgstr ""
+
+msgid "Incidents and warnings"
+msgstr ""
+
+msgid "Ollama is ready for Linux diagnosis"
+msgstr ""
+
+msgid "Prepare Ollama for Linux diagnosis"
+msgstr ""
+
+msgid "Set up"
+msgstr ""

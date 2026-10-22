@@ -92,10 +92,11 @@ if [[ $dry == 1 ]]; then
   echo "   would push main and v$version, and publish a GitHub release with:"
   echo "$notes" | sed 's/^/     /'
 else
-  step "push and GitHub release"
+  step "push and draft GitHub release (publish after all installers are ready)"
   git push -q origin main "v$version"
+  printf '%s\n' "$notes" > "$work/notes.md"
   gh release create "v$version" "$work/lili-crash-$version.plasmoid" --repo "$gh_repo" \
-    --title "Lili Crash $version" --notes "$notes" >/dev/null
+    --draft --title "Lili Crash $version" --notes-file "$work/notes.md" >/dev/null
   curl -fsSL -o "$work/lili-crash-$version.tar.gz" \
     "https://github.com/$gh_repo/archive/refs/tags/v$version.tar.gz"
 fi
@@ -143,13 +144,18 @@ else
     sleep 20
   done
   echo "$results"
+  grep -qE 'building|scheduled|dispatching|finished|signing|blocked|\*|unknown' <<<"$results" && fail "timed out waiting for OBS builds"
   grep -qE 'failed|unresolvable|broken' <<<"$results" && fail "an OBS build failed: ${osc[*]} buildlog $obs_prj $obs_pkg <repo> x86_64"
 
   step "packages/$version: the built packages, one per distribution, for people who'd rather download a file"
   packaging/packages.sh "$version"
+  python3 packaging/verify-packages.py "$version"
   git add packages
   git commit -q -m "Packages: $version"
   git push -q origin main
+  step "attach installers and checksums, then publish the release"
+  gh release upload "v$version" packages/"$version"/lili-crash-* packages/"$version"/SHA256SUMS --repo "$gh_repo"
+  gh release edit "v$version" --repo "$gh_repo" --draft=false --latest
 fi
 
 step "AUR"

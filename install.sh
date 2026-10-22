@@ -64,6 +64,9 @@ packages=()
 for cmd in coredumpctl python3 msgfmt notify-send xdg-open; do
   command -v "$cmd" >/dev/null || packages+=("$(package_for "$cmd")")
 done
+if [[ $family == arch ]] && ! python3 -c 'import PySide6' >/dev/null 2>&1; then
+  packages+=(pyside6)
+fi
 
 if ((${#packages[@]})); then
   case $family in

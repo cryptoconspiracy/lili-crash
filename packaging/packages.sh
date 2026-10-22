@@ -10,6 +10,7 @@
 set -euo pipefail
 
 version=${1:?usage: packaging/packages.sh VERSION}
+[[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "packages: invalid version" >&2; exit 1; }
 pkg=lili-crash
 name="Lili Crash"
 gh_repo=cryptoconspiracy/lili-crash
@@ -39,20 +40,21 @@ distros=(
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
-rm -rf "$out"
+[[ ! -e $out ]] || { echo "packages: $out already exists; refusing to replace it" >&2; exit 1; }
+# Assemble the complete set before exposing a new download directory.
+out=$work/output
 mkdir -p "$out"
 
 built=()
 for d in "${distros[@]}"; do
   IFS='|' read -r obs label _ fmt <<<"$d"
-  # A distribution the package doesn't build for (too old, a library it lacks) is left out.
-  "${osc[@]}" getbinaries -q -d "$work/$obs" "$obs_prj" "$pkg" "$obs" x86_64 >/dev/null 2>&1 || true
+  "${osc[@]}" getbinaries -q -d "$work/$obs" "$obs_prj" "$pkg" "$obs" x86_64 >/dev/null
   case $fmt in
     rpm) src=$(ls "$work/$obs"/$pkg-"$version"-*.rpm 2>/dev/null | grep -v '\.src\.rpm$' || true) ;;
     deb) src=$(ls "$work/$obs"/${pkg}_"$version"-*_*.deb 2>/dev/null || true) ;;
     *) src=$(ls "$work/$obs"/$pkg-"$version"-*.pkg.tar.zst 2>/dev/null || true) ;;
   esac
-  if [[ -z $src ]]; then echo "packages: no $version build for $obs, left out" >&2; continue; fi
+  if [[ -z $src ]]; then echo "packages: missing $version build for $obs" >&2; exit 1; fi
   [[ $(wc -l <<<"$src") == 1 && -f $src ]] || { echo "packages: more than one $version build for $obs" >&2; exit 1; }
   built+=("$d")
   arch=$(basename "$src" | grep -oE '(noarch|all|any|x86_64|amd64)' | tail -1)
@@ -99,6 +101,9 @@ EOF
   echo
   echo "\`SHA256SUMS\` lists every file's checksum: \`sha256sum -c SHA256SUMS\` in this folder."
 } > "$out/README.md"
+
+mv "$out" "$repo/packages/$version"
+out=$repo/packages/$version
 
 # packages/README.md always shows the newest version
 latest=$(ls "$repo/packages" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)

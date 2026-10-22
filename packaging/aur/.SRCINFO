@@ -11,6 +11,7 @@ pkgbase = lili-crash
 	depends = systemd
 	depends = libnotify
 	depends = xdg-utils
+	depends = pyside6
 	optdepends = plasma-workspace: the panel widget with AI usage and crash history
 	optdepends = libayatana-appindicator: the tray icon on desktops other than KDE Plasma
 	optdepends = python-gobject: the tray icon on desktops other than KDE Plasma

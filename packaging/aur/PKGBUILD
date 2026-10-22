@@ -6,7 +6,7 @@ pkgdesc="Find out why a program closed by itself: crash notifications with a one
 arch=('any')
 url="https://github.com/cryptoconspiracy/lili-crash"
 license=('MIT')
-depends=('python' 'systemd' 'libnotify' 'xdg-utils')
+depends=('python' 'systemd' 'libnotify' 'xdg-utils' 'pyside6')
 makedepends=('gettext')
 optdepends=('plasma-workspace: the panel widget with AI usage and crash history'
             'libayatana-appindicator: the tray icon on desktops other than KDE Plasma'
@@ -23,7 +23,7 @@ build() {
 
 check() {
   cd "$pkgname-$pkgver"
-  python3 -m py_compile bin/lili-crash
+  make check
 }
 
 package() {

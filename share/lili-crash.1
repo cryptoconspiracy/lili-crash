@@ -38,12 +38,45 @@ Settings shared with the tray widget.
 .BI install " agent"
 Run an AI assistant's official installer in a terminal.
 .TP
+.BI package-open " file"
+On Arch and its derivatives, identify a local .deb or .rpm and show a window with
+the file, host system and intended installation. Install on this system opens the
+configured AI with the lili-install-package skill for compatibility, native package
+tracking, dependencies, icons and launchers. Cancel does not install anything.
+Requires PySide6. Setup registers MIME openers once on Arch; arbitrary
+terminal commands are not intercepted. Other distributions keep native openers.
+.TP
 .BR skill " \fBpath\fR|\fBview\fR|\fBedit\fR|\fBreset\fR"
 This distribution's notes for the diagnosis skill.
 .TP
 .B setup
 Per-user setup after installing a package: turns the service on, puts Lili in the
 system tray and links the diagnosis skill for Claude and Codex.
+.SH PREVENTION AND REPORTS
+.TP
+.B health
+Print one read-only resource measurement. The service confirms sustained warnings
+over three samples, without AI or automatic repairs.
+.TP
+.B config set preventive on|off
+Enable or pause preventive monitoring of disk space, inodes, disk growth, memory
+pressure and repeated kernel hardware/driver errors.
+.TP
+.B report export [file] [--days 30]
+Export standardized incident metadata (1 to 365 days). No raw logs, hostnames,
+paths or free-text diagnoses. Application identifiers remain. Without a filename,
+print JSON. Existing files are never overwritten.
+.TP
+.B report save
+Choose an export destination from the desktop.
+.TP
+.B report aggregate files... [--output file]
+Compare exports locally across installations, group recurring symptoms and
+deduplicate overlapping exports. No upload or central server is involved.
+.PP
+New settings default to Ollama with Linux-specific instructions, not newly trained
+weights. Every remote session requires typing SEND before the agent starts. Initial
+context is redacted on a best-effort basis; subsequent agent output is not filtered.
 .SH FILES
 .TP
 .I ~/.config/lili/

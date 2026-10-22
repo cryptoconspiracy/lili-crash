@@ -37,6 +37,40 @@ and shows the first thing it complained about.
 
 You don't need to know anything about Linux to use her.
 
+### Opening a Debian or RPM package on Arch
+
+On Arch and its derivatives (including Garuda), opening a **`.deb` or `.rpm`**
+from the file manager brings up Lili's package window. It shows the file found,
+its format, your system and the intended installation. **Install on this system**
+opens your configured AI in a terminal with the `lili-install-package` skill;
+**Cancel** makes no installation changes.
+
+The native window uses Lili's flower logo, follows the desktop's light or dark
+theme, and keeps the action buttons visible on smaller screens. File details
+(path, size and checksum) can be expanded; the main view explains compatibility,
+installation and desktop integration in three steps. Escape cancels and the
+initial keyboard focus is on Cancel.
+
+The AI checks compatibility, looks for a matching native package, or prepares an
+Arch package using `makepkg` and installs it through `pacman`. The skill covers
+runtime libraries, icons and application-menu launchers. Some foreign binaries
+cannot run on Arch; the assistant must explain that rather than force an install.
+Administrator authentication and the AI's normal tool permissions still apply.
+The initial window recognizes the container; full metadata and ABI checks happen
+in the AI session. Opening that session is not proof of a successful install.
+
+Run `lili-crash setup --if-needed` after updating an existing installation to
+activate this feature, or log in again. Its native window needs `pyside6`, an installed
+AI and a supported terminal. Setup registers the opener once, only on Arch, and
+saves previous defaults in `~/.local/state/lili/package-handlers.json`. Later
+changes made in your desktop's file-association settings are respected. Use those
+settings to choose your previous opener again; **Open with → Install with Lili
+Crash** remains available. Debian and RPM distributions keep their native openers.
+
+This detects file-manager / `xdg-open` opening through MIME associations; it does
+not intercept arbitrary shell commands such as `./file.deb`, `dpkg` or `rpm`.
+You can also open the same window with `lili-crash package-open /path/to/file.deb`.
+
 ## How it works, step by step
 
 ### 1. A program crashes, and Lili tells you
@@ -266,6 +300,17 @@ how it went is very welcome, and so are notes for a Linux that isn't listed
 
 ## Privacy, honestly
 
+- New installations default to **Ollama**, with a versioned Linux diagnosis profile.
+  Existing saved AI choices are preserved. The profile supplies instructions, not
+  newly trained weights. The local session enables only the Ollama provider,
+  disables automatic sharing and web lookup during diagnosis, and asks before
+  other tools run. User-installed agent extensions and approved shell commands
+  remain outside Lili's control; this is not a network sandbox.
+- Before **every remote AI session**, including Ollama on another server, the
+  terminal explains the destination and requires typing `SEND`. Enter cancels.
+  Common credentials, private keys, email addresses and IPv4 addresses are masked
+  in the initial prompt. This is best effort: subsequent command output read by an
+  external agent is **not filtered by Lili**. Use localhost for sensitive cases.
 - When a program crashes, the computer saves a copy of what that program had in
   memory. That copy can contain passwords or documents. When you click *Find out why*,
   the AI reads it, and what the AI reads goes to the company behind it (Anthropic,
@@ -273,7 +318,7 @@ how it went is very welcome, and so are notes for a Linux that isn't listed
   don't click**, or pick **Ollama (local AI)**: then the AI runs on your own computer
   (or your own server) and nothing leaves it. A small local model is slower and less
   sharp than the big ones, but it's yours.
-- To show your usage, Lili asks Claude and Codex for your numbers the same way their
+- When a remote agent is selected, to show your usage, Lili asks Claude and Codex for your numbers the same way their
   own apps do, with the login they already saved. It doesn't send anything anywhere
   else.
 - Lili tells the AI to look and never touch. What the AI is allowed to do without
@@ -302,6 +347,7 @@ Everything Lili does is also a command:
 | `lili-crash notify <pid\|boot\|steam-id\|launch-id>` | Show the notification for one of them |
 | `lili-crash watch` | Notify every new crash, every Steam game that closes within two minutes, every app that exits with an error within 20 seconds of opening, Garuda updater errors, and a freeze from the boot before (the `lili-crash` user service runs this) |
 | `lili-crash install <agent>` | Run an AI's official installer in a terminal |
+| `lili-crash package-open <file>` | On Arch, identify a local `.deb`/`.rpm`, show the installation window and hand the confirmed request to the AI |
 | `lili-crash skill <path\|view\|edit\|reset>` | The notes for your distribution |
 | `lili-crash config [set <key> <value>]` | Settings shared with the tray icon |
 | `lili-crash tray` | Lili in the system tray, on desktops other than KDE Plasma (started at login by `setup`) |
@@ -326,6 +372,27 @@ To check the installer on other distributions, `tests/install-in-containers.sh` 
 in clean Ubuntu, Debian, Fedora, openSUSE and Arch containers (needs podman).
 
 ## What's new
+
+### 0.6.0: preventive warnings and incident reports
+
+The second round of Diolinux feedback is tracked in [the implementation notes](docs/prevention-and-reports.md).
+
+- **Local AI first:** Ollama is the default for new settings, with Linux-specific
+  diagnostic instructions, a visible setup status and no fallback to a cloud AI.
+- **Early warnings:** the service checks space, inode availability, sustained memory
+  pressure, disk growth and repeated kernel storage/GPU/hardware errors once a minute.
+  Three consecutive samples spanning at least two minutes confirm a warning. An
+  incident is notified once, survives service restarts and closes after recovery.
+  These are explainable risk rules, not a trained prediction model or guaranteed
+  prevention. No cleanup or system modification runs automatically.
+- **Portable reports:** save a JSON report from the panel or tray, or run
+  `lili-crash report export machine-a.json`. Copy reports yourself and compare them
+  with `lili-crash report aggregate machine-a.json machine-b.json --output fleet.json`.
+  Matching symptoms are grouped across machines; overlapping exports are deduplicated.
+  Reports omit raw logs, paths, hostnames and free-text diagnoses. They retain
+  application identifiers, timestamps and a random stable installation ID.
+- **Privacy before remote diagnosis:** every remote session requires an explicit
+  confirmation, with best-effort redaction of the initial context.
 
 ### 0.5: after the first round of feedback
 

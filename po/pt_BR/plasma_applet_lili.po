@@ -273,3 +273,27 @@ msgstr "Ignorar"
 #: plasma/lili/contents/ui/main.qml:440
 msgid "Reopen"
 msgstr "Reabrir"
+
+msgid "Ollama on localhost keeps diagnosis on this computer. Remote AI can receive sensitive logs; Lili asks before each remote session."
+msgstr "O Ollama em localhost mantém o diagnóstico neste computador. IAs remotas podem receber logs sigilosos; a Lili pergunta antes de cada sessão remota."
+
+msgid "Warn about persistent resource and hardware risks"
+msgstr "Avisar sobre riscos persistentes de recursos e hardware"
+
+msgid "Checks every minute, without AI or uploads. Warnings describe risk, not a guaranteed future failure."
+msgstr "Verifica a cada minuto, sem IA nem envios. Os alertas indicam riscos, sem garantir que uma falha acontecerá."
+
+msgid "Save incident report"
+msgstr "Salvar relatório de incidentes"
+
+msgid "Incidents and warnings"
+msgstr "Incidentes e alertas"
+
+msgid "Ollama is ready for Linux diagnosis"
+msgstr "O Ollama está pronto para diagnosticar o Linux"
+
+msgid "Prepare Ollama for Linux diagnosis"
+msgstr "Prepare o Ollama para diagnosticar o Linux"
+
+msgid "Set up"
+msgstr "Configurar"

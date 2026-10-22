@@ -20,7 +20,7 @@ locales:
 	done
 
 check:
-	python3 -m py_compile bin/lili-crash
+	python3 -m py_compile bin/lili-crash share/package_window.py share/lili_health.py share/lili_reports.py share/lili_privacy.py
 	python3 -m unittest discover -s tests -p 'test_*.py'
 	for po in po/*/*.po; do msgfmt --check -o /dev/null $$po || exit 1; done
 	if command -v appstreamcli >/dev/null; then appstreamcli validate --no-net $(METAINFO); fi
@@ -29,6 +29,9 @@ check:
 install: locales
 	install -Dm755 bin/lili-crash $(DESTDIR)$(PREFIX)/bin/lili-crash
 	install -d $(SHARE)/lili-crash
+	install -Dm644 share/package_window.py $(SHARE)/lili-crash/package_window.py
+	install -m644 share/lili_health.py share/lili_reports.py share/lili_privacy.py $(SHARE)/lili-crash/
+	install -Dm644 assets/logo/lili-crash.svg $(SHARE)/lili-crash/logo.svg
 	cp -r skill $(SHARE)/lili-crash/
 	for lang in $(LANGS); do \
 	  install -Dm644 locale/$$lang/LC_MESSAGES/lili.mo $(SHARE)/locale/$$lang/LC_MESSAGES/lili.mo; \

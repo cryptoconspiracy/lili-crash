@@ -12,6 +12,113 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+msgid "Choose a local .deb or .rpm file."
+msgstr "Escolha um arquivo .deb ou .rpm local."
+
+msgid "Choose a regular .deb or .rpm file."
+msgstr "Escolha um arquivo comum .deb ou .rpm."
+
+msgid "This file is not a recognized .deb or .rpm package."
+msgstr "Este arquivo não é um pacote .deb ou .rpm reconhecido."
+
+msgid "The package changed. Open it again to review the new file."
+msgstr "O pacote foi alterado. Abra-o novamente para conferir o novo arquivo."
+
+msgid "Lili Crash — Package detected"
+msgstr "Lili Crash — Pacote detectado"
+
+msgid "Install on this system"
+msgstr "Instalar neste sistema"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "The package window needs kdialog or zenity. Install one and open the file again."
+msgstr "A janela de instalação precisa do kdialog ou zenity. Instale um deles e abra o arquivo novamente."
+
+msgid "The package window could not open. Try again from your desktop session."
+msgstr "Não foi possível abrir a janela de instalação. Tente novamente na sua sessão gráfica."
+
+msgid "This installation assistant currently supports Arch Linux and its derivatives."
+msgstr "Este assistente de instalação oferece suporte ao Arch Linux e seus derivados."
+
+msgid "Lili's installation window needs PySide6. Install the pyside6 package and try again."
+msgstr "A janela de instalação da Lili precisa do PySide6. Instale o pacote pyside6 e tente novamente."
+
+msgid "Lili Crash — Install an application"
+msgstr "Lili Crash — Instalar um aplicativo"
+
+msgid "Lili flower logo"
+msgstr "Logo da Lili em forma de flor"
+
+msgid "Application installation"
+msgstr "Instalação de aplicativos"
+
+msgid "A package from another Linux."
+msgstr "Um pacote de outro Linux."
+
+#, python-brace-format
+msgid "Lili can help you install it on {system}."
+msgstr "A Lili pode ajudar você a instalá-lo no {system}."
+
+msgid "DETECTED FORMAT"
+msgstr "FORMATO ENCONTRADO"
+
+msgid "YOUR SYSTEM"
+msgstr "SEU SISTEMA"
+
+#, python-brace-format
+msgid "File: {path}\nSize: {size}\nSHA-256: {digest}"
+msgstr "Arquivo: {path}\nTamanho: {size}\nSHA-256: {digest}"
+
+msgid "Show file details"
+msgstr "Ver detalhes do arquivo"
+
+msgid "Hide file details"
+msgstr "Ocultar detalhes do arquivo"
+
+msgid "WHAT HAPPENS NEXT"
+msgstr "O QUE A LILI VAI FAZER"
+
+msgid "Check compatibility"
+msgstr "Verificar a compatibilidade"
+
+msgid "Check the application and the libraries it needs."
+msgstr "Conferir o aplicativo e as bibliotecas necessárias."
+
+msgid "Install for your system"
+msgstr "Instalar no seu sistema"
+
+msgid "Use a native package, tracked by pacman."
+msgstr "Usar um pacote nativo, gerenciado pelo pacman."
+
+msgid "Make it ready to use"
+msgstr "Deixar tudo pronto para usar"
+
+msgid "Set up icons and the application-menu shortcut."
+msgstr "Configurar os ícones e o atalho no menu de aplicativos."
+
+#, python-brace-format
+msgid "Assistant: {agent}"
+msgstr "Assistente: {agent}"
+
+msgid "Your assistant opens in a terminal to check and install the app. If it cannot run here, it will explain why. Administrator authentication may be required."
+msgstr "Seu assistente será aberto em um terminal para verificar e instalar o aplicativo. Se ele não puder rodar aqui, você saberá o motivo. Pode ser necessária autenticação de administrador."
+
+msgid "Nothing is installed before you confirm."
+msgstr "Nada será instalado antes da sua confirmação."
+
+#, python-brace-format
+msgid "Installing: {name}"
+msgstr "Instalando: {name}"
+
+#, python-brace-format
+msgid "Could not register Lili as the package opener for {type}."
+msgstr "Não foi possível registrar a Lili para abrir pacotes do tipo {type}."
+
+msgid "packages: opening a .deb or .rpm now shows Lili's installation window"
+msgstr "pacotes: abrir um .deb ou .rpm agora mostra a janela de instalação da Lili"
+
 #, python-brace-format
 msgid "No update error recorded for {id}"
 msgstr "Nenhum erro de atualização registrado para {id}"
@@ -381,3 +488,75 @@ msgstr "bandeja: o ícone da bandeja precisa do AppIndicator (gir1.2-ayatanaappi
 #: bin/lili-crash:1430
 msgid "tray: Lili is in the system tray, and she starts with every login"
 msgstr "bandeja: a Lili está na bandeja do sistema, e ela inicia a cada login"
+
+msgid "No preventive warning recorded for {id}"
+msgstr "Nenhum alerta preventivo registrado para {id}"
+
+msgid "Save incident report…"
+msgstr "Salvar relatório de incidentes…"
+
+msgid "Pause preventive monitoring"
+msgstr "Pausar monitoramento preventivo"
+
+msgid "Enable preventive monitoring"
+msgstr "Ativar monitoramento preventivo"
+
+msgid "Privacy: this AI may send logs and command output off this computer."
+msgstr "Privacidade: esta IA pode enviar logs e resultados de comandos para fora deste computador."
+
+msgid "Type SEND to continue, or press Enter to cancel: "
+msgstr "Digite SEND para continuar ou pressione Enter para cancelar: "
+
+msgid "This session uses {destination}. Logs and command output read by this AI may leave this computer and contain passwords, tokens or private documents.\n\nLili masks common secrets in the initial context only. It cannot filter additional output read by the agent or guarantee that all sensitive data is removed.\n\nUse Ollama on localhost to keep the diagnosis on this computer. Continue with this session?"
+msgstr "Esta sessão usa {destination}. Os logs e resultados de comandos lidos por esta IA podem sair deste computador e conter senhas, tokens ou documentos privados.\n\nA Lili oculta segredos comuns apenas no contexto inicial. Ela não consegue filtrar os resultados adicionais lidos pelo agente nem garantir que todos os dados sigilosos foram removidos.\n\nUse o Ollama em localhost para manter o diagnóstico neste computador. Deseja continuar com esta sessão?"
+
+msgid "Save incident report (metadata only, no raw logs)"
+msgstr "Salvar relatório de incidentes (somente metadados, sem logs brutos)"
+
+msgid "Incident report saved"
+msgstr "Relatório de incidentes salvo"
+
+msgid "Could not save incident report"
+msgstr "Não foi possível salvar o relatório de incidentes"
+
+msgid "Disk space is running low"
+msgstr "O espaço em disco está acabando"
+
+msgid "Free space or move files before writes and updates fail."
+msgstr "Libere espaço ou mova arquivos antes que gravações e atualizações falhem."
+
+msgid "The filesystem is running out of file entries"
+msgstr "O sistema de arquivos está ficando sem inodes"
+
+msgid "Inspect directories with many small files before creating more files."
+msgstr "Verifique pastas com muitos arquivos pequenos antes de criar mais arquivos."
+
+msgid "The disk may fill within 24 hours"
+msgstr "O disco pode ficar cheio em até 24 horas"
+
+msgid "Check growing logs and downloads; the estimate assumes the recent growth continues."
+msgstr "Verifique logs e downloads em crescimento; a estimativa pressupõe que o ritmo recente continue."
+
+msgid "Memory pressure is persisting"
+msgstr "A pressão de memória está persistindo"
+
+msgid "Save your work and inspect memory usage before opening more applications."
+msgstr "Salve seu trabalho e verifique o uso de memória antes de abrir mais aplicativos."
+
+msgid "Storage errors are recurring"
+msgstr "Erros de armazenamento estão se repetindo"
+
+msgid "Back up important files and inspect disk health and connections."
+msgstr "Faça backup dos arquivos importantes e verifique a saúde e as conexões do disco."
+
+msgid "Graphics driver timeouts are recurring"
+msgstr "O driver gráfico está demorando a responder repetidamente"
+
+msgid "Save your work and inspect driver errors before another graphics failure."
+msgstr "Salve seu trabalho e verifique os erros do driver antes de outra falha gráfica."
+
+msgid "Hardware errors are recurring"
+msgstr "Erros de hardware estão se repetindo"
+
+msgid "Inspect hardware health; corrected errors can precede an uncorrectable failure."
+msgstr "Verifique a saúde do hardware; erros corrigidos podem anteceder uma falha irrecuperável."

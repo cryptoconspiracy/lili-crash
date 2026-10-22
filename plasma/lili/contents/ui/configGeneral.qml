@@ -10,6 +10,7 @@ KCM.SimpleKCM {
 
     property string cfg_avatar
     property string cfg_agent
+    property string cfg_preventive
     property string cfg_claude_model
     property string cfg_codex_model
     property string cfg_opencode_model
@@ -22,6 +23,7 @@ KCM.SimpleKCM {
     property string cfg_shell
     property string cfg_avatarDefault
     property string cfg_agentDefault
+    property string cfg_preventiveDefault
     property string cfg_claude_modelDefault
     property string cfg_codex_modelDefault
     property string cfg_opencode_modelDefault
@@ -100,6 +102,21 @@ KCM.SimpleKCM {
         Kirigami.Separator {
             Kirigami.FormData.isSection: true
             Kirigami.FormData.label: i18n("AI agents")
+        }
+
+        QQC2.Label {
+            Layout.fillWidth: true
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 28
+            wrapMode: Text.WordWrap
+            text: i18n("Ollama on localhost keeps diagnosis on this computer. Remote AI can receive sensitive logs; Lili asks before each remote session.")
+        }
+
+        QQC2.CheckBox {
+            text: i18n("Warn about persistent resource and hardware risks")
+            checked: page.cfg_preventive === "on"
+            onToggled: page.cfg_preventive = checked ? "on" : "off"
+            QQC2.ToolTip.visible: hovered
+            QQC2.ToolTip.text: i18n("Checks every minute, without AI or uploads. Warnings describe risk, not a guaranteed future failure.")
         }
 
         GridLayout {

@@ -15,6 +15,8 @@ PlasmoidItem {
     property var programs: []
     property int pending: 0
     property string crashError: ""
+    property bool settingsLoaded: false
+    property bool localReady: false
 
     readonly property var agentNames: ({
         claude: "Claude Code", codex: "Codex", opencode: "OpenCode", gemini: "Gemini CLI",
@@ -91,8 +93,9 @@ PlasmoidItem {
     }
 
     function saveSettings() {
+        if (!settingsLoaded) return
         const c = Plasmoid.configuration
-        const keys = ["avatar", "agent", "terminal", "shell"].concat(
+        const keys = ["avatar", "agent", "terminal", "shell", "preventive"].concat(
             ["claude", "codex", "opencode", "gemini", "copilot", "cursor", "ollama"].map(a => a + "_model"), ["ollama_url"])
         settings.run(keys.map(k => "lili-crash config set " + k + " " + quote(c[k])).join(" && "))
     }
@@ -130,7 +133,10 @@ PlasmoidItem {
 
     Shell {
         id: usageSource
-        function refresh() { run("python3 " + root.quote(root.usageScript)) }
+        function refresh() {
+            if (root.agent === "ollama") { root.usage = ({}); return }
+            run("python3 " + root.quote(root.usageScript))
+        }
         onNewData: (source, data) => {
             disconnectSource(source)
             try { root.usage = JSON.parse(data.stdout) } catch (e) {}
@@ -154,7 +160,22 @@ PlasmoidItem {
 
     Shell {
         id: settings
-        onNewData: (source) => disconnectSource(source)
+        onNewData: (source, data) => {
+            disconnectSource(source)
+            try {
+                const found = JSON.parse(data.stdout)
+                if (!found.agents) return
+                root.localReady = found.agents.some(a => a.id === "ollama" && a.installed)
+                if (!root.settingsLoaded) {
+                    const c = Plasmoid.configuration
+                    for (const key of Object.keys(found)) {
+                        if (typeof found[key] === "string" && c[key] !== undefined) c[key] = found[key]
+                    }
+                    root.settingsLoaded = true
+                    usageSource.refresh()
+                }
+            } catch (e) {}
+        }
     }
 
     Connections {
@@ -162,7 +183,8 @@ PlasmoidItem {
         function onValueChanged() { root.saveSettings() }
     }
 
-    Component.onCompleted: saveSettings()
+    Component.onCompleted: settings.run("lili-crash config")
+    onAgentChanged: usageSource.refresh()
 
     // The usage endpoints are undocumented; every 5 minutes is plenty for numbers that move slowly.
     Timer {
@@ -178,7 +200,7 @@ PlasmoidItem {
         running: true
         repeat: true
         triggeredOnStart: true
-        onTriggered: crashes.run("lili-crash list")
+        onTriggered: { crashes.run("lili-crash list"); settings.run("lili-crash config") }
     }
 
     compactRepresentation: MouseArea {
@@ -335,6 +357,11 @@ PlasmoidItem {
                     PlasmaComponents3.ToolTip { text: i18n("Refresh") }
                 }
                 PlasmaComponents3.ToolButton {
+                    icon.name: "document-save"
+                    onClicked: settings.run("lili-crash report save")
+                    PlasmaComponents3.ToolTip { text: i18n("Save incident report") }
+                }
+                PlasmaComponents3.ToolButton {
                     icon.name: "configure"
                     onClicked: Plasmoid.internalAction("configure").trigger()
                     PlasmaComponents3.ToolTip { text: i18n("Settings") }
@@ -350,11 +377,26 @@ PlasmoidItem {
             UsageCard { name: "claude"; Layout.fillWidth: true }
             UsageCard { name: "codex"; Layout.fillWidth: true }
 
+            RowLayout {
+                visible: root.agent === "ollama"
+                Layout.fillWidth: true
+                PlasmaComponents3.Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    text: root.localReady ? i18n("Ollama is ready for Linux diagnosis") : i18n("Prepare Ollama for Linux diagnosis")
+                }
+                PlasmaComponents3.Button {
+                    visible: !root.localReady
+                    text: i18n("Set up")
+                    onClicked: settings.run("lili-crash install ollama")
+                }
+            }
+
             Kirigami.Separator { Layout.fillWidth: true }
 
             RowLayout {
                 Layout.fillWidth: true
-                PlasmaExtras.Heading { level: 4; text: i18n("Crashes"); Layout.fillWidth: true }
+                PlasmaExtras.Heading { level: 4; text: i18n("Incidents and warnings"); Layout.fillWidth: true }
                 PlasmaComponents3.Button {
                     visible: root.pending > 0
                     icon.name: "tools-wizard"

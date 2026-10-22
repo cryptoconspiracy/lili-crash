@@ -46,7 +46,7 @@ first login.
 make locales
 
 %check
-python3 -m py_compile bin/lili-crash
+make check
 
 %install
 make PREFIX=%{_prefix} DESTDIR=%{buildroot} install

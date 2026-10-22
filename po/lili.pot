@@ -376,3 +376,75 @@ msgstr ""
 #: bin/lili-crash:1430
 msgid "tray: Lili is in the system tray, and she starts with every login"
 msgstr ""
+
+msgid "No preventive warning recorded for {id}"
+msgstr ""
+
+msgid "Save incident report…"
+msgstr ""
+
+msgid "Pause preventive monitoring"
+msgstr ""
+
+msgid "Enable preventive monitoring"
+msgstr ""
+
+msgid "Privacy: this AI may send logs and command output off this computer."
+msgstr ""
+
+msgid "Type SEND to continue, or press Enter to cancel: "
+msgstr ""
+
+msgid "This session uses {destination}. Logs and command output read by this AI may leave this computer and contain passwords, tokens or private documents.\n\nLili masks common secrets in the initial context only. It cannot filter additional output read by the agent or guarantee that all sensitive data is removed.\n\nUse Ollama on localhost to keep the diagnosis on this computer. Continue with this session?"
+msgstr ""
+
+msgid "Save incident report (metadata only, no raw logs)"
+msgstr ""
+
+msgid "Incident report saved"
+msgstr ""
+
+msgid "Could not save incident report"
+msgstr ""
+
+msgid "Disk space is running low"
+msgstr ""
+
+msgid "Free space or move files before writes and updates fail."
+msgstr ""
+
+msgid "The filesystem is running out of file entries"
+msgstr ""
+
+msgid "Inspect directories with many small files before creating more files."
+msgstr ""
+
+msgid "The disk may fill within 24 hours"
+msgstr ""
+
+msgid "Check growing logs and downloads; the estimate assumes the recent growth continues."
+msgstr ""
+
+msgid "Memory pressure is persisting"
+msgstr ""
+
+msgid "Save your work and inspect memory usage before opening more applications."
+msgstr ""
+
+msgid "Storage errors are recurring"
+msgstr ""
+
+msgid "Back up important files and inspect disk health and connections."
+msgstr ""
+
+msgid "Graphics driver timeouts are recurring"
+msgstr ""
+
+msgid "Save your work and inspect driver errors before another graphics failure."
+msgstr ""
+
+msgid "Hardware errors are recurring"
+msgstr ""
+
+msgid "Inspect hardware health; corrected errors can precede an uncorrectable failure."
+msgstr ""
