@@ -1393,7 +1393,8 @@ def open_terminal(title, script):
     # happens in a script it can't reinterpret. The shell stays open afterwards.
     fd, launcher = tempfile.mkstemp(dir=STATE_DIR, prefix="launch-", suffix=".sh")
     with os.fdopen(fd, "w") as f:
-        f.write(f"rm -f {shlex.quote(launcher)}\n{script}exec {shlex.quote(shell)} -i\n")
+        # A terminal that can't be told where to start still starts the agent here.
+        f.write(f"rm -f {shlex.quote(launcher)}\ncd {shlex.quote(str(STATE_DIR))}\n{script}exec {shlex.quote(shell)} -i\n")
     argv = terminal_command(settings["terminal"], str(STATE_DIR), title, ["sh", launcher])
     # Started from inside another agent session, these would make the new agent
     # think it's that session's child (Claude Code then stops saving transcripts).
@@ -1716,6 +1717,9 @@ TERMINALS = {
     "wezterm": lambda cwd, title, cmd: ["wezterm", "start", "--cwd", cwd, "--", *cmd],
     "foot": lambda cwd, title, cmd: ["foot", f"--working-directory={cwd}", f"--title={title}", *cmd],
     "gnome-terminal": lambda cwd, title, cmd: ["gnome-terminal", f"--working-directory={cwd}", f"--title={title}", "--", *cmd],
+    # The freedesktop proposal for "the user's terminal": Ptyxis on Ubuntu and Fedora,
+    # whatever the user picked elsewhere, without Lili knowing its flags.
+    "xdg-terminal-exec": lambda cwd, title, cmd: ["xdg-terminal-exec", f"--dir={cwd}", f"--title={title}", "--", *cmd],
 }
 
 
@@ -1727,15 +1731,29 @@ def which(command):
 
 
 def installed_terminals():
-    return [t for t in TERMINALS if shutil.which(t)]
+    return [t for t in TERMINALS if terminal_usable(t)]
+
+
+def terminal_usable(name):
+    path = shutil.which(name)
+    if not path or name != "xdg-terminal-exec":
+        return bool(path)
+    # Early releases took every argument as the command, so --dir would run as one.
+    # It is a shell script, and the releases that know the option spell it out.
+    try:
+        return b"--dir=" in Path(path).read_bytes()
+    except OSError:
+        return False
 
 
 def terminal_command(choice, cwd, title, cmd):
-    if choice == "auto" or not shutil.which(choice):
+    if choice == "auto" or choice not in TERMINALS or not terminal_usable(choice):
         preferred = os.path.basename(os.environ.get("TERMINAL", ""))
-        desktop = os.environ.get("XDG_CURRENT_DESKTOP", "")
-        order = [preferred, "konsole" if "KDE" in desktop else "gnome-terminal", *TERMINALS]
-        choice = next((t for t in order if t in TERMINALS and shutil.which(t)), None)
+        # Plasma keeps its own default terminal setting, which xdg-terminal-exec doesn't
+        # read on every release, so Konsole stays first there.
+        desktop = ["konsole"] if "KDE" in os.environ.get("XDG_CURRENT_DESKTOP", "") else []
+        order = [preferred, *desktop, "xdg-terminal-exec", "gnome-terminal", *TERMINALS]
+        choice = next((t for t in order if t in TERMINALS and terminal_usable(t)), None)
         if not choice:
             sys.exit(_("No supported terminal found: {terminals}").format(terminals=", ".join(TERMINALS)))
     return TERMINALS[choice](cwd, title, cmd)
