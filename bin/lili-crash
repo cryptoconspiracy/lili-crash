@@ -306,14 +306,17 @@ def steam_time(stamp):
     return int(datetime.strptime(stamp, "%Y-%m-%d %H:%M:%S").timestamp())
 
 
-def steam_lines(root, name):
+def steam_lines(root, name, window=None):
+    # Parsing every stamp is most of the time spent on a long log; within a window the
+    # stamps compare as text first.
+    low, high = (datetime.fromtimestamp(t).strftime("%Y-%m-%d %H:%M:%S") for t in window) if window else ("", "~")
     # Steam starts a fresh log once it grows, keeping the old one as .previous.
     for path in (root / f"logs/{name}.previous.txt", root / f"logs/{name}.txt"):
         try:
             with open(path, errors="replace") as f:
                 for line in f:
                     match = STEAM_LINE.match(line.rstrip("\n"))
-                    if match:
+                    if match and low <= match.group(1) <= high:
                         yield steam_time(match.group(1)), match.group(2)
         except OSError:
             continue
@@ -393,9 +396,7 @@ def steam_evidence(root, run):
     """What Steam logged while the game ran: how it was launched, and what went wrong."""
     command, trouble, shapes = "", [], set()
     for log in ("console_log", "console-linux", "connection_log"):
-        for ts, text in steam_lines(root, log):
-            if not run["start"] - 2 <= ts <= run["time"] + 5:
-                continue
+        for ts, text in steam_lines(root, log, (run["start"] - 2, run["time"] + 5)):
             if not command and f"Game process added : AppID {run['appid']} " in text:
                 command = text.split('"', 1)[-1].rstrip('"')
             elif STEAM_TROUBLE.search(text) and not STEAM_NOISE.search(text):
@@ -418,6 +419,7 @@ APP_UNIT = re.compile(r"^app-(.+?)@([^.]+)\.service$")
 # Tighter than a game's two minutes: an app that shows its window and is then closed
 # with an error (a wizard cancelled after a minute exits 1) did open.
 LAUNCH_EXIT = 20
+LAUNCHES_FILE = STATE_DIR / "launches.json"
 
 
 def journal_json(*args):
@@ -442,20 +444,40 @@ def launch_identity(app):
 
 
 def failed_launches():
+    """Reads only what the journal logged since the last call: a service stuck in a
+    restart loop leaves hundreds of thousands of failures, and the tray and the panel
+    widget ask every minute. A past launch doesn't change, so it is remembered."""
+    try:
+        cache = json.loads(LAUNCHES_FILE.read_text())
+        cursor, runs = cache["cursor"], cache["runs"]
+    except (OSError, ValueError, KeyError, TypeError):
+        cursor, runs = None, []
+    query = ["journalctl", "--user", "--no-pager", "-o", "json", "--output-fields=USER_UNIT,USER_INVOCATION_ID",
+             f"MESSAGE_ID={UNIT_FAILED_MESSAGE_ID}", "UNIT_RESULT=exit-code"]
+    out = subprocess.run([*query, *([f"--after-cursor={cursor}"] if cursor else [])], capture_output=True, text=True)
+    if out.returncode and cursor:
+        # The journal was rebuilt and the cursor points nowhere: read it all again.
+        cursor, runs = None, []
+        out = subprocess.run(query, capture_output=True, text=True)
+    previous = cursor
     failed = {}
-    for e in journal_json("--output-fields=USER_UNIT,USER_INVOCATION_ID",
-                          f"MESSAGE_ID={UNIT_FAILED_MESSAGE_ID}", "UNIT_RESULT=exit-code"):
+    for line in out.stdout.splitlines():
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue
+        cursor = e.get("__CURSOR", cursor)
         match = APP_UNIT.match(e.get("USER_UNIT", ""))
         # Login items fail on their own schedule; nobody clicked them and waited.
         if not match or match.group(2) == "autostart" or not e.get("USER_INVOCATION_ID"):
             continue
         failed[e["USER_INVOCATION_ID"]] = {"unit": e["USER_UNIT"], "app": unescape_unit(match.group(1)),
                                            "time": int(e["__REALTIME_TIMESTAMP"]) // 1_000_000}
-    if not failed:
-        return []
     found = []
-    for e in journal_json("--output-fields=USER_INVOCATION_ID", f"MESSAGE_ID={UNIT_STARTED_MESSAGE_ID}",
-                          *(f"USER_INVOCATION_ID={i}" for i in failed)):
+    # Without an invocation to match, the query would return every start ever logged.
+    started = journal_json("--output-fields=USER_INVOCATION_ID", f"MESSAGE_ID={UNIT_STARTED_MESSAGE_ID}",
+                           *(f"USER_INVOCATION_ID={i}" for i in failed)) if failed else []
+    for e in started:
         run = failed.get(e.get("USER_INVOCATION_ID"))
         if run and "start" not in run:
             run.update(id=launch_id(e["USER_INVOCATION_ID"]), start=int(e["__REALTIME_TIMESTAMP"]) // 1_000_000)
@@ -468,7 +490,19 @@ def failed_launches():
             run = failed.get(e.get("USER_INVOCATION_ID"))
             if run:
                 run["status"] = e.get("EXIT_STATUS", "")
-    return sorted(found, key=lambda r: r["time"])
+    known = {r["id"] for r in runs}
+    runs = sorted(runs + [r for r in found if r["id"] not in known], key=lambda r: r["time"])[-500:]
+    if cursor != previous:
+        save_json(LAUNCHES_FILE, {"cursor": cursor, "runs": runs})
+    return runs
+
+
+def save_json(path, data):
+    # The service, the tray and the panel widget can all write at once.
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(f".{os.getpid()}.tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1))
+    tmp.replace(path)
 
 
 def launch_id(invocation):
@@ -1001,8 +1035,40 @@ def tray():
         set_config("agent", agent)
         refresh()
 
+    shown, busy, again = [None], [False], [False]
+
     def refresh():
-        found = programs()
+        # A scan takes a while on a long journal, so it runs beside GTK, which keeps
+        # answering clicks; the menu is only replaced when something in it changed,
+        # since replacing it closes it under the pointer.
+        if busy[0]:
+            # A click during a scan may change what that scan already read.
+            again[0] = True
+        else:
+            busy[0] = True
+            threading.Thread(target=scan, daemon=True).start()
+        return True
+
+    def scan():
+        try:
+            settings = load_config()
+            ready = {a: local_ready(settings) if a == "ollama" else bool(which(spec["command"])) for a, spec in AGENTS.items()}
+            view = (programs(), settings, ready)
+        except Exception as error:
+            print(f"lili-crash tray: {error}", file=sys.stderr)
+            view = None
+        GLib.idle_add(show, view)
+
+    def show(view):
+        busy[0] = False
+        if again[0]:
+            again[0] = False
+            refresh()
+        key = view and json.dumps(view, sort_keys=True, default=str)
+        if not view or key == shown[0]:
+            return False
+        shown[0] = key
+        found, settings, ready = view
         new = [p for p in found if p["state"] == "new"]
         indicator.set_status(AppIndicator.IndicatorStatus.ATTENTION if new else AppIndicator.IndicatorStatus.ACTIVE)
         menu = Gtk.Menu()
@@ -1025,12 +1091,10 @@ def tray():
         if not found:
             item(menu, _("No crashes yet"), enabled=False)
         menu.append(Gtk.SeparatorMenuItem())
-        settings = load_config()
         item(menu, _("Save incident report…"), lambda: run("report", "save"))
         item(menu, _("Pause preventive monitoring") if settings["preventive"] == "on" else _("Enable preventive monitoring"),
              lambda: (set_config("preventive", "off" if settings["preventive"] == "on" else "on"), refresh()))
         ai = submenu(menu, _("Diagnose with"))
-        ready = {a: local_ready(settings) if a == "ollama" else bool(which(spec["command"])) for a, spec in AGENTS.items()}
         group = []
         for agent, spec in sorted(AGENTS.items(), key=lambda pair: pair[0] != "ollama"):
             if ready[agent]:
@@ -1046,8 +1110,14 @@ def tray():
         item(menu, _("Quit"), Gtk.main_quit)
         menu.show_all()
         indicator.set_menu(menu)
-        return True
+        return False
 
+    # Some panels hide an indicator until it has a menu.
+    menu = Gtk.Menu()
+    item(menu, "Lili Crash", enabled=False)
+    item(menu, _("Quit"), Gtk.main_quit)
+    menu.show_all()
+    indicator.set_menu(menu)
     refresh()
     GLib.timeout_add_seconds(20, refresh)
     Gtk.main()
