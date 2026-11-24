@@ -1,3 +1,9 @@
+lili-crash (0.6.1-1) unstable; urgency=medium
+
+  * Wake an internal panel that returns without an image, integrate AppImages, and name crashes after the right app
+
+ -- Dan B <unknown@cryptoconspiracy.io>  Tue, 24 Nov 2026 20:09:53 -0300
+
 lili-crash (0.6.0-1) unstable; urgency=medium
 
   * Add preventive warnings, private fleet reports, local Linux diagnosis and Arch package installation

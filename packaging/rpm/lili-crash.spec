@@ -1,5 +1,5 @@
 Name:           lili-crash
-Version:        0.6.0
+Version:        0.6.1
 Release:        1%{?dist}
 Summary:        Find out why a program closed by itself, with a one-click AI diagnosis
 License:        MIT
@@ -70,6 +70,9 @@ rm -f %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 %{_datadir}/plasma/plasmoids/lili/
 
 %changelog
+* Tue Nov 24 2026 Dan B <unknown@cryptoconspiracy.io> - 0.6.1-1
+- Wake an internal panel that returns without an image, integrate AppImages, and name crashes after the right app
+
 * Thu Oct 22 2026 Dan B <unknown@cryptoconspiracy.io> - 0.6.0-1
 - Add preventive warnings, private fleet reports, local Linux diagnosis and Arch package installation
 
