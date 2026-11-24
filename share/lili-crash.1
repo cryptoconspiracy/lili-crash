@@ -39,12 +39,14 @@ Settings shared with the tray widget.
 Run an AI assistant's official installer in a terminal.
 .TP
 .BI package-open " file"
-On Arch and its derivatives, identify a local .deb or .rpm and show a window with
-the file, host system and intended installation. Install on this system opens the
-configured AI with the lili-install-package skill for compatibility, native package
-tracking, dependencies, icons and launchers. Cancel does not install anything.
-Requires PySide6. Setup registers MIME openers once on Arch; arbitrary
-terminal commands are not intercepted. Other distributions keep native openers.
+On Arch and its derivatives, identify a local .deb, .rpm or AppImage and show a
+window with the file, host system and intended installation. Install on this system
+opens the configured AI. Debian and RPM files use the lili-install-package skill for
+compatibility, native package tracking, dependencies, icons and launchers. AppImages
+use lili-install-appimage for a checksum-verified, user-local managed copy and
+application-menu launcher. Cancel does not change anything. Requires PySide6. Setup
+registers MIME openers once on Arch; arbitrary terminal commands are not intercepted.
+Other distributions keep native openers.
 .TP
 .BR skill " \fBpath\fR|\fBview\fR|\fBedit\fR|\fBreset\fR"
 This distribution's notes for the diagnosis skill.
@@ -67,6 +69,11 @@ Export standardized incident metadata (1 to 365 days). No raw logs, hostnames,
 paths or free-text diagnoses. Application identifiers remain. Without a filename,
 print JSON. Existing files are never overwritten.
 .TP
+.BR display " \fBstatus\fR|\fBapprove\fR \fIoutput\fR|\fBrewake\fR|\fBdisable\fR|\fBshow\fR"
+On KDE Wayland, recovery of an internal Intel panel that comes back without an image.
+Nothing runs until approve registers the panel, working at 60 Hz. Then, when the screens
+come back from being off, they are powered off and on once; rewake does it now.
+.TP
 .B report save
 Choose an export destination from the desktop.
 .TP
@@ -75,8 +82,14 @@ Compare exports locally across installations, group recurring symptoms and
 deduplicate overlapping exports. No upload or central server is involved.
 .PP
 New settings default to Ollama with Linux-specific instructions, not newly trained
-weights. Every remote session requires typing SEND before the agent starts. Initial
-context is redacted on a best-effort basis; subsequent agent output is not filtered.
+weights. Every remote diagnosis session requires typing SEND before the agent starts;
+the package window's Install button authorizes its own session. An owner
+may persist approval on this installation with
+.B lili-crash config set remote_consent auto
+(use
+.B remote_consent ask
+to restore the prompt). Initial context is redacted on a best-effort basis;
+subsequent agent output is not filtered.
 .SH FILES
 .TP
 .I ~/.config/lili/

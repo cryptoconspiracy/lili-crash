@@ -11,6 +11,7 @@ class PackageWindow(QDialog):
     def __init__(self, package, system, agent, logo, translate):
         super().__init__()
         _ = translate
+        appimage = package["format"] == "appimage"
         self.setWindowTitle(_("Lili Crash — Install an application"))
         self.setWindowIcon(QIcon(str(logo)))
         self.setObjectName("packageWindow")
@@ -84,8 +85,10 @@ class PackageWindow(QDialog):
 
         heading = QVBoxLayout()
         heading.setSpacing(7)
-        heading.addWidget(label(_("A package from another Linux."), size=base + 10, bold=True))
-        heading.addWidget(label(_("Lili can help you install it on {system}.").format(system=system), muted=True))
+        heading.addWidget(label(_("A portable AppImage application.") if appimage else
+                                _("A package from another Linux."), size=base + 10, bold=True))
+        heading.addWidget(label((_("Lili can add it to your applications on {system}.") if appimage else
+                                 _("Lili can help you install it on {system}.")).format(system=system), muted=True))
         layout.addLayout(heading)
 
         card = QFrame()
@@ -104,7 +107,11 @@ class PackageWindow(QDialog):
         origin = QVBoxLayout()
         origin.setSpacing(3)
         origin.addWidget(label(_("DETECTED FORMAT"), size=base - 2, muted=True))
-        origin.addWidget(label("Debian · .deb" if package["format"] == "deb" else "RPM · .rpm", bold=True))
+        if appimage:
+            detected_format = f"AppImage · Type {package.get('appimage_type', 2)}"
+        else:
+            detected_format = "Debian · .deb" if package["format"] == "deb" else "RPM · .rpm"
+        origin.addWidget(label(detected_format, bold=True))
         route.addLayout(origin, 1)
         route.addWidget(label("→", size=base + 7, accent=True))
         route.addSpacing(14)
@@ -133,14 +140,16 @@ class PackageWindow(QDialog):
         steps = QVBoxLayout()
         steps.setSpacing(14)
         steps.addWidget(label(_("WHAT HAPPENS NEXT"), size=base - 2, bold=True, muted=True))
-        for number, title, description in (
-            ("1", _("Check compatibility"), _("Check the application and the libraries it needs.")),
-            ("2", _("Install for your system"), _("Use a native package, tracked by pacman.")),
-            ("3", _("Make it ready to use"), _("Set up icons and the application-menu shortcut.")),
-        ):
+        steps_for = ((_('Check compatibility'), _("Check the application and the libraries it needs.")),
+                     (_('Add it to your applications'), _("Keep a managed copy in your home folder.")),
+                     (_('Make it ready to use'), _("Set up icons and the application-menu shortcut."))) if appimage else (
+                     (_('Check compatibility'), _("Check the application and the libraries it needs.")),
+                     (_('Install for your system'), _("Use a native package, tracked by pacman.")),
+                     (_('Make it ready to use'), _("Set up icons and the application-menu shortcut.")))
+        for number, (title, description) in enumerate(steps_for, start=1):
             row = QHBoxLayout()
             row.setSpacing(12)
-            badge = label(number, size=base, bold=True)
+            badge = label(str(number), size=base, bold=True)
             badge.setObjectName("stepNumber")
             badge.setFixedSize(32, 32)
             badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -153,8 +162,10 @@ class PackageWindow(QDialog):
             steps.addLayout(row)
         layout.addLayout(steps)
         layout.addWidget(label(_("Assistant: {agent}").format(agent=agent), size=base - 1, bold=True))
-        layout.addWidget(label(_("Your assistant opens in a terminal to check and install the app. "
-                                 "If it cannot run here, it will explain why. Administrator authentication may be required."),
+        layout.addWidget(label((_('Your assistant opens in a terminal to check and integrate the AppImage. '
+                                  'It stays in your home folder and does not use pacman.') if appimage else
+                                 _("Your assistant opens in a terminal to check and install the app. "
+                                   "If it cannot run here, it will explain why. Administrator authentication may be required.")),
                                size=base - 1, muted=True))
         layout.addStretch()
         scroll.setWidget(body)

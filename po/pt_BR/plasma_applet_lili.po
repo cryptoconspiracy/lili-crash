@@ -274,8 +274,8 @@ msgstr "Ignorar"
 msgid "Reopen"
 msgstr "Reabrir"
 
-msgid "Ollama on localhost keeps diagnosis on this computer. Remote AI can receive sensitive logs; Lili asks before each remote session."
-msgstr "O Ollama em localhost mantém o diagnóstico neste computador. IAs remotas podem receber logs sigilosos; a Lili pergunta antes de cada sessão remota."
+msgid "Ollama on localhost keeps diagnosis on this computer. Remote AI can receive sensitive logs; Lili asks before each remote diagnosis, unless you chose automatic starts. Install in the package window starts it directly."
+msgstr "O Ollama em localhost mantém o diagnóstico neste computador. IAs remotas podem receber logs sigilosos; a Lili pergunta antes de cada diagnóstico remoto, a menos que você tenha escolhido o início automático. O botão Instalar da janela de pacotes inicia direto."
 
 msgid "Warn about persistent resource and hardware risks"
 msgstr "Avisar sobre riscos persistentes de recursos e hardware"

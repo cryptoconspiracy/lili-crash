@@ -67,6 +67,9 @@ done
 if [[ $family == arch ]] && ! python3 -c 'import PySide6' >/dev/null 2>&1; then
   packages+=(pyside6)
 fi
+if [[ $family == arch ]] && ! python3 -c 'import PySide6.QtSvg' >/dev/null 2>&1; then
+  packages+=(qt6-svg)
+fi
 
 if ((${#packages[@]})); then
   case $family in

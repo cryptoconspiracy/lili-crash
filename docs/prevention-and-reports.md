@@ -3,7 +3,9 @@
 This change implements a local-first diagnostic profile, explainable early warnings,
 portable incident reports and a remote-session privacy gate. It does not claim to
 train a specialist model, predict arbitrary failures, deploy a fleet server or repair
-machines automatically.
+machines automatically through the AI. A separate, explicitly authorized
+[display recovery rule](display-recovery.md) can restore a known internal-panel
+mode without an AI session or a restart.
 
 ## Local diagnosis
 
@@ -92,8 +94,13 @@ or automatic fleet-wide remediation in this version.
 
 Every non-Ollama provider and every non-loopback Ollama endpoint is treated as
 potentially remote, even if a generic agent was configured locally by the user.
-Before the agent starts, the visible terminal requires `SEND`; Enter/EOF cancels.
-Consent is not persisted. Common credentials, private keys, email and IPv4 addresses
+Before a diagnosis starts, the visible terminal requires `SEND`; Enter/EOF cancels.
+An owner who explicitly wants unattended starts on their own installation can run
+`lili-crash config set remote_consent auto`; `remote_consent ask` restores the prompt.
+New installations default to `ask`.
+Package installation uses the **Install on this system** click as authorization and
+starts the selected agent without a second confirmation in the terminal.
+Diagnosis consent is not persisted. Common credentials, private keys, email and IPv4 addresses
 in the initial prompt are masked. Later output read by a third-party agent is not
 intercepted; secrets can evade pattern matching. The notice states these limits.
 

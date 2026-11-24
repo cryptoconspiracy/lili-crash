@@ -108,7 +108,7 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             Layout.maximumWidth: Kirigami.Units.gridUnit * 28
             wrapMode: Text.WordWrap
-            text: i18n("Ollama on localhost keeps diagnosis on this computer. Remote AI can receive sensitive logs; Lili asks before each remote session.")
+            text: i18n("Ollama on localhost keeps diagnosis on this computer. Remote AI can receive sensitive logs; Lili asks before each remote diagnosis, unless you chose automatic starts. Install in the package window starts it directly.")
         }
 
         QQC2.CheckBox {

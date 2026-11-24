@@ -1,12 +1,12 @@
 # Maintainer: Dan B <unknown@cryptoconspiracy.io>
 pkgname=lili-crash
 pkgver=0.6.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Find out why a program closed by itself: crash notifications with a one-click AI diagnosis"
 arch=('any')
 url="https://github.com/cryptoconspiracy/lili-crash"
 license=('MIT')
-depends=('python' 'systemd' 'libnotify' 'xdg-utils' 'pyside6')
+depends=('python' 'systemd' 'libnotify' 'xdg-utils' 'pyside6' 'qt6-svg')
 makedepends=('gettext')
 optdepends=('plasma-workspace: the panel widget with AI usage and crash history'
             'libayatana-appindicator: the tray icon on desktops other than KDE Plasma'

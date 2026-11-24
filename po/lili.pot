@@ -448,3 +448,54 @@ msgstr ""
 
 msgid "Inspect hardware health; corrected errors can precede an uncorrectable failure."
 msgstr ""
+
+msgid "Internal screen stayed black after unlocking; the user confirmed recovery."
+msgstr ""
+
+msgid "On session return, the approved panel was using a refresh rate above its known stable mode."
+msgstr ""
+
+msgid "Recent display update errors were detected in the graphics journal."
+msgstr ""
+
+msgid "Image recovery confirmed by the user."
+msgstr ""
+
+msgid "The system confirmed the stable mode. Physical image recovery still needs visual confirmation."
+msgstr ""
+
+msgid "The correction could not be verified. Automatic retries are limited; further diagnosis is needed."
+msgstr ""
+
+msgid "The panel is already in its stable mode. No display settings were changed; further diagnosis is needed."
+msgstr ""
+
+msgid "Detected: {detail}"
+msgstr ""
+
+msgid "Panel: {output}\nRefresh rate: {before} → {after} Hz"
+msgstr ""
+
+msgid "No restart, logout or application termination was performed."
+msgstr ""
+
+msgid "Automatic authorization covers only restoring this registered panel to its known stable 60 Hz mode and waking it again after the screens were off."
+msgstr ""
+
+msgid "Lili Crash — Display recovery"
+msgstr ""
+
+msgid "Display recovery report"
+msgstr ""
+
+msgid "The screens came back from being off. This panel is known to light up without an image then."
+msgstr ""
+
+msgid "You asked Lili to wake the internal screen again."
+msgstr ""
+
+msgid "The screens were powered off and on again. If the internal screen is still black, use the button below."
+msgstr ""
+
+msgid "Screen is black: wake it again"
+msgstr ""

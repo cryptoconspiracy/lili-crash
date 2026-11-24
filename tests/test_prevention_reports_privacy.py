@@ -257,13 +257,23 @@ class PrivacyTests(unittest.TestCase):
         self.assertFalse(list(self.root.glob("prompt-*")))
         self.assertIn(privacy.remote_notice("Claude Code", translate=lili._), result.stdout)
 
-    def test_remote_launch_executes_only_after_explicit_send(self):
+    def test_remote_launch_executes_after_explicit_send_regardless_of_case(self):
         marker = self.root / "executed"
         fake = self.root / "fake-ai"
         fake.write_text('#!/bin/sh\ntouch "' + str(marker) + '"\n')
         fake.chmod(0o700)
         script = self.script({"agent": "codex"}, str(fake))
-        subprocess.run(["sh", "-c", script], input="SEND\n", text=True, capture_output=True, check=True)
+        subprocess.run(["sh", "-c", script], input="Send\n", text=True, capture_output=True, check=True)
+        self.assertTrue(marker.exists())
+
+    def test_remote_launch_skips_send_only_after_persistent_local_approval(self):
+        marker = self.root / "executed"
+        fake = self.root / "fake-ai"
+        fake.write_text('#!/bin/sh\ntouch "' + str(marker) + '"\n')
+        fake.chmod(0o700)
+        script = self.script({"agent": "codex", "remote_consent": "auto"}, str(fake))
+        self.assertNotIn("lili_consent", script)
+        subprocess.run(["sh", "-c", script], text=True, capture_output=True, check=True)
         self.assertTrue(marker.exists())
 
     def test_local_launch_sets_up_missing_binary_without_remote_fallback(self):

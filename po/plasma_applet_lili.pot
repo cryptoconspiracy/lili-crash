@@ -275,7 +275,7 @@ msgstr ""
 msgid "Reopen"
 msgstr ""
 
-msgid "Ollama on localhost keeps diagnosis on this computer. Remote AI can receive sensitive logs; Lili asks before each remote session."
+msgid "Ollama on localhost keeps diagnosis on this computer. Remote AI can receive sensitive logs; Lili asks before each remote diagnosis, unless you chose automatic starts. Install in the package window starts it directly."
 msgstr ""
 
 msgid "Warn about persistent resource and hardware risks"

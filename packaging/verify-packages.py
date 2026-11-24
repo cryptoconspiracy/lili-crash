@@ -19,9 +19,10 @@ TARGETS = {
 FILES = {
     "bin/lili-crash": "usr/bin/lili-crash",
     **{f"share/{name}.py": f"usr/share/lili-crash/{name}.py"
-       for name in ("lili_health", "lili_reports", "lili_privacy", "package_window")},
+       for name in ("lili_health", "lili_reports", "lili_privacy", "lili_display", "package_window")},
     "skill/lili-diagnose-crash/SKILL.md": "usr/share/lili-crash/skill/lili-diagnose-crash/SKILL.md",
     "skill/lili-install-package/SKILL.md": "usr/share/lili-crash/skill/lili-install-package/SKILL.md",
+    "skill/lili-install-appimage/SKILL.md": "usr/share/lili-crash/skill/lili-install-appimage/SKILL.md",
     "plasma/lili/contents/ui/main.qml": "usr/share/plasma/plasmoids/lili/contents/ui/main.qml",
 }
 

@@ -12,14 +12,14 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-msgid "Choose a local .deb or .rpm file."
-msgstr "Escolha um arquivo .deb ou .rpm local."
+msgid "Choose a local .deb, .rpm or AppImage file."
+msgstr "Escolha um arquivo .deb, .rpm ou AppImage local."
 
-msgid "Choose a regular .deb or .rpm file."
-msgstr "Escolha um arquivo comum .deb ou .rpm."
+msgid "Choose a regular .deb, .rpm or AppImage file."
+msgstr "Escolha um arquivo comum .deb, .rpm ou AppImage."
 
-msgid "This file is not a recognized .deb or .rpm package."
-msgstr "Este arquivo não é um pacote .deb ou .rpm reconhecido."
+msgid "This file is not a recognized .deb, .rpm or AppImage file."
+msgstr "Este arquivo não é um .deb, .rpm ou AppImage reconhecido."
 
 msgid "The package changed. Open it again to review the new file."
 msgstr "O pacote foi alterado. Abra-o novamente para conferir o novo arquivo."
@@ -57,9 +57,16 @@ msgstr "Instalação de aplicativos"
 msgid "A package from another Linux."
 msgstr "Um pacote de outro Linux."
 
+msgid "A portable AppImage application."
+msgstr "Um aplicativo AppImage portátil."
+
 #, python-brace-format
 msgid "Lili can help you install it on {system}."
 msgstr "A Lili pode ajudar você a instalá-lo no {system}."
+
+#, python-brace-format
+msgid "Lili can add it to your applications on {system}."
+msgstr "A Lili pode adicioná-lo aos seus aplicativos no {system}."
 
 msgid "DETECTED FORMAT"
 msgstr "FORMATO ENCONTRADO"
@@ -89,6 +96,12 @@ msgstr "Conferir o aplicativo e as bibliotecas necessárias."
 msgid "Install for your system"
 msgstr "Instalar no seu sistema"
 
+msgid "Add it to your applications"
+msgstr "Adicionar aos seus aplicativos"
+
+msgid "Keep a managed copy in your home folder."
+msgstr "Manter uma cópia gerenciada na sua pasta pessoal."
+
 msgid "Use a native package, tracked by pacman."
 msgstr "Usar um pacote nativo, gerenciado pelo pacman."
 
@@ -105,6 +118,9 @@ msgstr "Assistente: {agent}"
 msgid "Your assistant opens in a terminal to check and install the app. If it cannot run here, it will explain why. Administrator authentication may be required."
 msgstr "Seu assistente será aberto em um terminal para verificar e instalar o aplicativo. Se ele não puder rodar aqui, você saberá o motivo. Pode ser necessária autenticação de administrador."
 
+msgid "Your assistant opens in a terminal to check and integrate the AppImage. It stays in your home folder and does not use pacman."
+msgstr "Seu assistente será aberto em um terminal para verificar e integrar o AppImage. Ele ficará na sua pasta pessoal e não usará o pacman."
+
 msgid "Nothing is installed before you confirm."
 msgstr "Nada será instalado antes da sua confirmação."
 
@@ -114,10 +130,10 @@ msgstr "Instalando: {name}"
 
 #, python-brace-format
 msgid "Could not register Lili as the package opener for {type}."
-msgstr "Não foi possível registrar a Lili para abrir pacotes do tipo {type}."
+msgstr "Não foi possível registrar a Lili para abrir arquivos do tipo {type}."
 
-msgid "packages: opening a .deb or .rpm now shows Lili's installation window"
-msgstr "pacotes: abrir um .deb ou .rpm agora mostra a janela de instalação da Lili"
+msgid "packages: opening a .deb, .rpm or AppImage now shows Lili's installation window"
+msgstr "pacotes: abrir um .deb, .rpm ou AppImage agora mostra a janela de instalação da Lili"
 
 #, python-brace-format
 msgid "No update error recorded for {id}"
@@ -560,3 +576,54 @@ msgstr "Erros de hardware estão se repetindo"
 
 msgid "Inspect hardware health; corrected errors can precede an uncorrectable failure."
 msgstr "Verifique a saúde do hardware; erros corrigidos podem anteceder uma falha irrecuperável."
+
+msgid "Internal screen stayed black after unlocking; the user confirmed recovery."
+msgstr "A tela interna permaneceu preta após o desbloqueio; o usuário confirmou a recuperação."
+
+msgid "On session return, the approved panel was using a refresh rate above its known stable mode."
+msgstr "No retorno à sessão, o painel autorizado estava usando uma taxa de atualização acima do modo estável registrado."
+
+msgid "Recent display update errors were detected in the graphics journal."
+msgstr "Foram detectados erros recentes de atualização da tela nos registros gráficos."
+
+msgid "Image recovery confirmed by the user."
+msgstr "Recuperação da imagem confirmada pelo usuário."
+
+msgid "The system confirmed the stable mode. Physical image recovery still needs visual confirmation."
+msgstr "O sistema confirmou o modo estável. A recuperação da imagem no painel ainda precisa de confirmação visual."
+
+msgid "The correction could not be verified. Automatic retries are limited; further diagnosis is needed."
+msgstr "Não foi possível verificar a correção. As tentativas automáticas são limitadas; é necessário continuar o diagnóstico."
+
+msgid "The panel is already in its stable mode. No display settings were changed; further diagnosis is needed."
+msgstr "O painel já está no modo estável. Nenhuma configuração de tela foi alterada; é necessário continuar o diagnóstico."
+
+msgid "Detected: {detail}"
+msgstr "Detectado: {detail}"
+
+msgid "Panel: {output}\nRefresh rate: {before} → {after} Hz"
+msgstr "Painel: {output}\nTaxa de atualização: {before} → {after} Hz"
+
+msgid "No restart, logout or application termination was performed."
+msgstr "A máquina não foi reiniciada, a sessão não foi encerrada e nenhum aplicativo foi fechado."
+
+msgid "Automatic authorization covers only restoring this registered panel to its known stable 60 Hz mode and waking it again after the screens were off."
+msgstr "A autorização automática permite apenas restaurar este painel registrado ao modo estável de 60 Hz e reacendê-lo depois que as telas ficaram apagadas."
+
+msgid "Lili Crash — Display recovery"
+msgstr "Lili Crash — Recuperação da tela"
+
+msgid "Display recovery report"
+msgstr "Relatório de recuperação da tela"
+
+msgid "The screens came back from being off. This panel is known to light up without an image then."
+msgstr "As telas voltaram depois de apagadas. Este painel às vezes acende sem imagem nessa hora."
+
+msgid "You asked Lili to wake the internal screen again."
+msgstr "Você pediu para a Lili reacender a tela do laptop."
+
+msgid "The screens were powered off and on again. If the internal screen is still black, use the button below."
+msgstr "As telas foram desligadas e religadas. Se a tela do laptop continuar preta, use o botão abaixo."
+
+msgid "Screen is black: wake it again"
+msgstr "A tela está preta: reacender"

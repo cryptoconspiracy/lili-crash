@@ -37,13 +37,40 @@ and shows the first thing it complained about.
 
 You don't need to know anything about Linux to use her.
 
-### Opening a Debian or RPM package on Arch
+### Recovering an internal screen without restarting
 
-On Arch and its derivatives (including Garuda), opening a **`.deb` or `.rpm`**
-from the file manager brings up Lili's package window. It shows the file found,
-its format, your system and the intended installation. **Install on this system**
-opens your configured AI in a terminal with the `lili-install-package` skill;
-**Cancel** makes no installation changes.
+On KDE Wayland with an Intel internal panel, Lili can restore a **previously
+confirmed 60 Hz mode** after unlocking, display wake or recurring graphics errors,
+and power the screens off and on once when they come back from being off.
+This is an explicit, per-panel authorization, disabled until enrolled. It never
+restarts the computer, compositor or applications. A report window stays open
+until dismissed and distinguishes an applied mode from visually confirmed recovery.
+
+After recovering the screen and confirming that it works at 60 Hz:
+
+```sh
+lili-crash display approve eDP-2
+lili-crash display status
+lili-crash display show latest
+lili-crash display rewake     # lit but black: power the screens off and on now
+lili-crash display disable
+```
+
+Replace `eDP-2` with the internal output reported by `kscreen-doctor -o`. Enrollment
+requires its current mode to be 60 Hz. To also record a recovery already confirmed
+by the user, append `--record-recovery-from 240` (the actual previous refresh rate).
+The service must be running; restart **only `lili-crash.service`** after updating.
+Details and limits are in [display recovery](docs/display-recovery.md).
+
+### Opening an AppImage, Debian or RPM package on Arch
+
+On Arch and its derivatives (including Garuda), opening a **`.deb`, `.rpm` or
+`.AppImage`** from the file manager brings up Lili's installation window. It
+checks the container signature and shows the file found, its format, your system
+and the intended route. **Install on this system** opens your configured AI in a
+terminal. Debian and RPM files use `lili-install-package`; AppImages use
+`lili-install-appimage` and are copied into your home folder with a menu launcher,
+not installed through pacman. **Cancel** makes no changes.
 
 The native window uses Lili's flower logo, follows the desktop's light or dark
 theme, and keeps the action buttons visible on smaller screens. File details
@@ -51,13 +78,13 @@ theme, and keeps the action buttons visible on smaller screens. File details
 installation and desktop integration in three steps. Escape cancels and the
 initial keyboard focus is on Cancel.
 
-The AI checks compatibility, looks for a matching native package, or prepares an
-Arch package using `makepkg` and installs it through `pacman`. The skill covers
-runtime libraries, icons and application-menu launchers. Some foreign binaries
-cannot run on Arch; the assistant must explain that rather than force an install.
-Administrator authentication and the AI's normal tool permissions still apply.
-The initial window recognizes the container; full metadata and ABI checks happen
-in the AI session. Opening that session is not proof of a successful install.
+For Debian and RPM files, the AI checks compatibility, looks for a matching native
+package, or prepares an Arch package using `makepkg` and installs it through
+`pacman`. For AppImages, it verifies the checksum and architecture, makes a
+managed user-local copy, and creates a launcher without changing system files.
+Some foreign binaries cannot run on Arch; the assistant must explain that rather
+than force an installation. The initial window recognizes the container; full ABI
+checks happen in the AI session. Opening that session is not proof of success.
 
 Run `lili-crash setup --if-needed` after updating an existing installation to
 activate this feature, or log in again. Its native window needs `pyside6`, an installed
@@ -65,11 +92,12 @@ AI and a supported terminal. Setup registers the opener once, only on Arch, and
 saves previous defaults in `~/.local/state/lili/package-handlers.json`. Later
 changes made in your desktop's file-association settings are respected. Use those
 settings to choose your previous opener again; **Open with → Install with Lili
-Crash** remains available. Debian and RPM distributions keep their native openers.
+Crash** remains available. Other distributions keep their native openers.
 
 This detects file-manager / `xdg-open` opening through MIME associations; it does
-not intercept arbitrary shell commands such as `./file.deb`, `dpkg` or `rpm`.
-You can also open the same window with `lili-crash package-open /path/to/file.deb`.
+not intercept arbitrary shell commands such as `./file.deb`, `dpkg`, `rpm` or an
+AppImage run from a terminal. You can also open the same window with
+`lili-crash package-open /path/to/file.AppImage`.
 
 ## How it works, step by step
 
@@ -306,8 +334,12 @@ how it went is very welcome, and so are notes for a Linux that isn't listed
   disables automatic sharing and web lookup during diagnosis, and asks before
   other tools run. User-installed agent extensions and approved shell commands
   remain outside Lili's control; this is not a network sandbox.
-- Before **every remote AI session**, including Ollama on another server, the
-  terminal explains the destination and requires typing `SEND`. Enter cancels.
+- Before **every remote diagnosis session**, including Ollama on another server, the
+  terminal explains the destination and requires typing `SEND`. If you explicitly
+  prefer automatic starts on this computer, run `lili-crash config set remote_consent auto`;
+  use `remote_consent ask` to restore the prompt. New installations always ask.
+  Package installation starts directly after clicking **Install on this system**,
+  using the selected agent without another terminal confirmation.
   Common credentials, private keys, email addresses and IPv4 addresses are masked
   in the initial prompt. This is best effort: subsequent command output read by an
   external agent is **not filtered by Lili**. Use localhost for sensitive cases.
@@ -347,7 +379,7 @@ Everything Lili does is also a command:
 | `lili-crash notify <pid\|boot\|steam-id\|launch-id>` | Show the notification for one of them |
 | `lili-crash watch` | Notify every new crash, every Steam game that closes within two minutes, every app that exits with an error within 20 seconds of opening, Garuda updater errors, and a freeze from the boot before (the `lili-crash` user service runs this) |
 | `lili-crash install <agent>` | Run an AI's official installer in a terminal |
-| `lili-crash package-open <file>` | On Arch, identify a local `.deb`/`.rpm`, show the installation window and hand the confirmed request to the AI |
+| `lili-crash package-open <file>` | On Arch, identify a local `.deb`, `.rpm` or AppImage, show the installation window and hand the confirmed request to the AI |
 | `lili-crash skill <path\|view\|edit\|reset>` | The notes for your distribution |
 | `lili-crash config [set <key> <value>]` | Settings shared with the tray icon |
 | `lili-crash tray` | Lili in the system tray, on desktops other than KDE Plasma (started at login by `setup`) |

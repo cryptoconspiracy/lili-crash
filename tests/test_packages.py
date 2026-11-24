@@ -29,6 +29,8 @@ class PackageTests(unittest.TestCase):
         self.package = self.root / "sample.deb"
         self.package.write_bytes(b"!<arch>\n" + ar_member("debian-binary", b"2.0\n") +
                                  ar_member("control.tar.gz", b"control") + ar_member("data.tar.gz", b"payload"))
+        self.appimage = self.root / "sample.AppImage"
+        self.appimage.write_bytes(b"\x7fELF\x02\x01\x01\x00AI\x02" + b"\0" * 101)
         for name, value in {"STATE_DIR": self.root / "state", "CONFIG_FILE": self.root / "config.json"}.items():
             mock = patch.object(lili, name, value)
             mock.start()
@@ -39,7 +41,20 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(info["format"], "deb")
         self.assertEqual(info["path"], str(self.package))
         self.assertEqual(info["sha256"], lili.hashlib.sha256(self.package.read_bytes()).hexdigest())
-        self.assertEqual(list(self.root.iterdir()), [self.package])
+        self.assertEqual(set(self.root.iterdir()), {self.package, self.appimage})
+
+    def test_appimage_type_two_and_digest_are_identified_without_execution(self):
+        info = lili.inspect_package(str(self.appimage))
+        self.assertEqual(info["format"], "appimage")
+        self.assertEqual(info["appimage_type"], 2)
+        self.assertEqual(info["path"], str(self.appimage))
+        self.assertEqual(info["sha256"], lili.hashlib.sha256(self.appimage.read_bytes()).hexdigest())
+
+    def test_renamed_elf_is_not_treated_as_an_appimage(self):
+        fake = self.root / "not-an-app.AppImage"
+        fake.write_bytes(b"\x7fELF" + b"\0" * 108)
+        with self.assertRaises(ValueError):
+            lili.inspect_package(str(fake))
 
     def test_shipped_real_deb_and_rpm_packages_are_recognized(self):
         for suffix in ("deb", "rpm"):
@@ -91,6 +106,43 @@ class PackageTests(unittest.TestCase):
             launch.assert_called_once()
             self.assertTrue(launch.call_args.kwargs["installing"])
             self.assertIn(lili.inspect_package(str(self.package))["sha256"], launch.call_args.args[1])
+
+    def test_appimage_click_hands_verified_file_to_its_own_skill(self):
+        with patch.object(lili, "arch_host", return_value=True), patch.object(lili, "which", return_value="claude"), \
+                patch.object(lili, "package_confirmation", return_value=True), patch.object(lili, "terminal_command"), \
+                patch.object(lili, "launch_agent") as launch:
+            lili.package_open(str(self.appimage))
+            prompt = launch.call_args.args[1]
+            self.assertIn(str(lili.APPIMAGE_SKILL), prompt)
+            self.assertIn(lili.inspect_package(str(self.appimage))["sha256"], prompt)
+            self.assertNotIn("lili-install-package skill", prompt)
+
+    def test_install_click_starts_selected_remote_agent_without_terminal_confirmation(self):
+        received = self.root / "received.json"
+        fake = self.root / "fake-ai"
+        fake.write_text("#!/usr/bin/env python3\nimport json, sys\nfrom pathlib import Path\n"
+                        f"Path({str(received)!r}).write_text(json.dumps(sys.argv[1:]))\n")
+        fake.chmod(0o700)
+        for agent in ("claude", "codex"):
+            with self.subTest(agent=agent), \
+                    patch.object(lili, "load_config", return_value={**lili.DEFAULTS, "agent": agent}), \
+                    patch.object(lili, "arch_host", return_value=True), \
+                    patch.object(lili, "which", return_value=str(fake)), \
+                    patch.object(lili, "package_confirmation", return_value=True), \
+                    patch.object(lili, "terminal_command"), patch.object(lili, "open_terminal") as terminal:
+                lili.package_open(str(self.package))
+                script = terminal.call_args.args[1]
+                self.assertNotIn("lili_consent", script)
+                result = subprocess.run(["sh", "-c", script], input="", text=True,
+                                        capture_output=True, timeout=5)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertNotIn("SEND", result.stdout)
+                argv = json.loads(received.read_text())
+                self.assertEqual(argv[0], "--")
+                self.assertIn(lili.inspect_package(str(self.package))["sha256"], argv[-1])
+                self.assertIn("required dependencies, icons and desktop launcher", argv[-1])
+                self.assertIn("checks before reporting success", argv[-1])
+                received.unlink()
 
     def test_replaced_file_after_click_does_not_launch(self):
         def answer(*args, **kwargs):
@@ -145,7 +197,7 @@ class PackageTests(unittest.TestCase):
                 self.assertEqual(lili.arch_host(), expected)
 
     def test_setup_saves_old_defaults_registers_once_and_respects_later_changes(self):
-        associations = {mime: "org.kde.ark.desktop" for mime in lili.PACKAGE_MIMES}
+        associations = {mime: "org.kde.ark.desktop" for mime in lili.INSTALL_MIMES}
 
         def run(argv, **kwargs):
             if argv[:3] == ["xdg-mime", "query", "default"] and not (lili.STATE_DIR / "package-handlers.json").exists():
@@ -155,7 +207,7 @@ class PackageTests(unittest.TestCase):
             result = associations.get(argv[-1], "") if argv[:3] == ["xdg-mime", "query", "default"] else ""
             return subprocess.CompletedProcess(argv, 0, result)
 
-        with patch.dict(os.environ, {"XDG_DATA_HOME": str(self.root / "data")}), \
+        with patch.dict(os.environ, {"XDG_DATA_HOME": str(self.root / "data"), "XDG_CONFIG_HOME": str(self.root / "config")}), \
                 patch.object(lili.importlib.util, "find_spec", return_value=True), \
                 patch.object(lili, "arch_host", return_value=True), patch.object(lili.shutil, "which", return_value="tool"), \
                 patch.object(lili.subprocess, "run", side_effect=run) as commands, patch.object(lili, "link_skill"):
@@ -172,6 +224,29 @@ class PackageTests(unittest.TestCase):
             commands.assert_not_called()
             self.assertEqual(associations[lili.PACKAGE_MIMES[0]], "another.desktop")
 
+    def test_setup_upgrades_existing_package_registration_with_appimages_only(self):
+        associations = {mime: "org.kde.ark.desktop" for mime in lili.INSTALL_MIMES}
+        marker = self.root / "state/package-handlers.json"
+        marker.parent.mkdir()
+        marker.write_text(json.dumps({"installed": True, "previous": {
+            mime: "old.desktop" for mime in lili.PACKAGE_MIMES}}))
+
+        def run(argv, **kwargs):
+            if argv[:2] == ["xdg-mime", "default"]:
+                associations[argv[3]] = argv[2]
+            result = associations.get(argv[-1], "") if argv[:3] == ["xdg-mime", "query", "default"] else ""
+            return subprocess.CompletedProcess(argv, 0, result)
+
+        with patch.dict(os.environ, {"XDG_DATA_HOME": str(self.root / "data")}), \
+                patch.object(lili.importlib.util, "find_spec", return_value=True), \
+                patch.object(lili, "arch_host", return_value=True), patch.object(lili.shutil, "which", return_value="tool"), \
+                patch.object(lili.subprocess, "run", side_effect=run), patch.object(lili, "link_skill"):
+            lili.setup_package_support()
+        saved = json.loads(marker.read_text())
+        self.assertEqual(associations[lili.PACKAGE_MIMES[0]], "org.kde.ark.desktop")
+        self.assertEqual({associations[mime] for mime in lili.APPIMAGE_MIMES}, {lili.PACKAGE_DESKTOP})
+        self.assertEqual(set(saved["mimes"]), set(lili.INSTALL_MIMES))
+
     def test_setup_on_other_distros_does_not_change_associations(self):
         with patch.object(lili, "arch_host", return_value=False), patch.object(lili.subprocess, "run") as run:
             lili.setup_package_support()
@@ -179,7 +254,7 @@ class PackageTests(unittest.TestCase):
             self.assertFalse(lili.STATE_DIR.exists())
 
     def test_failed_registration_does_not_claim_success(self):
-        with patch.dict(os.environ, {"XDG_DATA_HOME": str(self.root / "data")}), \
+        with patch.dict(os.environ, {"XDG_DATA_HOME": str(self.root / "data"), "XDG_CONFIG_HOME": str(self.root / "config")}), \
                 patch.object(lili.importlib.util, "find_spec", return_value=True), \
                 patch.object(lili, "arch_host", return_value=True), patch.object(lili.shutil, "which", return_value="tool"), \
                 patch.object(lili.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "ark.desktop")):
