@@ -19,7 +19,7 @@ locales:
 	  msgfmt -o $(WIDGET)/contents/locale/$$lang/LC_MESSAGES/plasma_applet_lili.mo po/$$lang/plasma_applet_lili.po; \
 	done
 
-check:
+check: locales
 	python3 -m py_compile bin/lili-crash share/package_window.py share/lili_health.py share/lili_reports.py share/lili_privacy.py share/lili_display.py
 	python3 -m unittest discover -s tests -p 'test_*.py'
 	for po in po/*/*.po; do msgfmt --check -o /dev/null $$po || exit 1; done
