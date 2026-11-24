@@ -1,7 +1,7 @@
 pkgbase = lili-crash
 	pkgdesc = Find out why a program closed by itself: crash notifications with a one-click AI diagnosis
-	pkgver = 0.6.0
-	pkgrel = 2
+	pkgver = 0.6.1
+	pkgrel = 1
 	url = https://github.com/cryptoconspiracy/lili-crash
 	install = lili-crash.install
 	arch = any
@@ -17,7 +17,7 @@ pkgbase = lili-crash
 	optdepends = libayatana-appindicator: the tray icon on desktops other than KDE Plasma
 	optdepends = python-gobject: the tray icon on desktops other than KDE Plasma
 	optdepends = konsole: a terminal for the diagnosis
-	source = lili-crash-0.6.0.tar.gz::https://github.com/cryptoconspiracy/lili-crash/archive/refs/tags/v0.6.0.tar.gz
-	sha256sums = 002fa60eb5c6363e3fafda53d94ccf2d0ed67a1306522a26952ea9021e8f4ecf
+	source = lili-crash-0.6.1.tar.gz::https://github.com/cryptoconspiracy/lili-crash/archive/refs/tags/v0.6.1.tar.gz
+	sha256sums = af47b6b4655938276abd5eb187d1f8dd505fba6cd1d20e607f5feb58fd19a01b
 
 pkgname = lili-crash
